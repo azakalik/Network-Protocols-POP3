@@ -1,10 +1,9 @@
 #include "serverutils.h"
 #include "util.h"
+#include "logger.h"
 
 //listenfd is the passive socket id (to listen for new requests)
 int listenfd = NOT_ALLOCATED;
-
-
 
 int main(int argc, char ** argv){
 
@@ -19,21 +18,21 @@ int main(int argc, char ** argv){
 		port = argv[1];
 	}
 	else {
-		err_n_die("Invalid number of arguments");
+        log(FATAL, "Invalid number of arguments");
+        exit(ERROR_CODE);
 	}
 
-    int passive_socket = setupTCPPassiveSocket(port);
+    int listenfd = setupTCPPassiveSocket(port);
+    
     // ===============================================================
 
     while (1) { // Run forever
 		// Wait for a client to connect
-		int clntSock = acceptTCPConnection(passive_socket);
-		if (clntSock < 0){
-			//log
-        }
-		else {
+        log(INFO, "Waiting for new connection");
+		int clntSock = acceptTCPConnection(listenfd);
+		if (clntSock >= 0){
 			handleTCPEchoClient(clntSock);
-		}
+        }
 	}
     return 0;
 }
@@ -45,8 +44,10 @@ void handle_interrupt(int signal){
         puts("Closing the sockets and exiting...");
 
         //Close the passive socket
-        if(close(listenfd) < 0)
-            err_n_die("Close error while attempting to close passive socket");
+        if(listenfd != NOT_ALLOCATED && close(listenfd) < 0){
+            log(FATAL, "Could not close passive socket in fd %d", listenfd);
+            exit(ERROR_CODE);
+        }
 
         puts("Exited succesfully.");
         exit(0);

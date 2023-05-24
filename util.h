@@ -13,7 +13,6 @@
 
 
 // === functions inspired by Jacob Sorber ===
-void err_n_die(const char * fmt, ...); //for error handling
 char * bin2hex(const unsigned char * input, size_t len); //for very basic logging
 /// =========================================
 

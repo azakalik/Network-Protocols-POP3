@@ -1,31 +1,4 @@
 #include "util.h"
-
-void err_n_die(const char * fmt, ...){
-    int errno_save;
-    va_list ap;
-
-    //any system or library call can set errno, so we save it
-    errno_save = errno;
-
-    //print out fmt and args to stdout
-    va_start(ap, fmt);
-    vfprintf(stdout, fmt, ap);
-    fprintf(stdout, "\n");
-    fflush(stdout);
-
-    //print out error message if errno was set
-    if (errno_save != 0){
-        fprintf(stdout, "(errno = %d) : %s\n", errno_save,
-        strerror(errno_save));
-        fprintf(stdout, "\n");
-        fflush(stdout);
-    }
-    va_end(ap);
-
-    //terminate with error
-    exit(1);
-}
-
 //converts binary to hex (for logging)
 char * bin2hex(const unsigned char * input, size_t len){
     char * result;

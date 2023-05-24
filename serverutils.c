@@ -1,5 +1,6 @@
 #include "serverutils.h"
 #include "util.h"
+#include "logger.h"
 
 int setupTCPPassiveSocket(char * port){
     // Construct the server address structure
@@ -10,11 +11,9 @@ int setupTCPPassiveSocket(char * port){
 	hint.ai_socktype = SOCK_STREAM;         // Only stream sockets
 	hint.ai_protocol = IPPROTO_TCP;         // Only TCP protocol
 
-	//port == NULL ? port = SERVER_PORT_STRING : itoa(port)	TODO
-
 	struct addrinfo * socket_list; 			// List of server addresses
     if(getaddrinfo(NULL, port, &hint, &socket_list)  != 0 ){
-        err_n_die("getaddrinfo failed");
+        log(FATAL, "Couldn't create passive socket on port %s", port);
 	}
 
 	int servSock = -1;
@@ -23,21 +22,28 @@ int setupTCPPassiveSocket(char * port){
 		errno = 0;
 		// Create a TCP socket
         if((servSock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol)) < 0){
-            //todo log
+            log(ERROR, "Couldn't create a socket with: Family: %d, Socktype: %d, Protocol: %d. Will try next one in list.", addr->ai_family, addr->ai_socktype, addr->ai_protocol)
 			continue;       // Socket creation failed; try next address
 		}
 
 		// Bind to ALL the address and set socket to listen
 		if ((bind(servSock, addr->ai_addr, addr->ai_addrlen) == 0) && (listen(servSock, MAX_WAITING) == 0)) {
-			//log
+            log(INFO, "Created succesfully a socket with: Family: %d, Socktype: %d, Protocol: %d.", addr->ai_family, addr->ai_socktype, addr->ai_protocol)
 		} else {
-            //log
-			close(servSock);  // Close and try with the next one
+            log(ERROR, "Could not bind to socket. Will try next one in list.");
+			close(servSock);  // Close and try with the next one (TODO CHECK ERROR IN CLOSE)
 			servSock = -1;
 		}
 	}
 
 	freeaddrinfo(socket_list);
+
+	if(servSock < 0){
+        log(FATAL, "Couldn't start passive socket on port %s", port);
+        exit(ERROR_CODE);
+    } else {
+        log(INFO, "Started passive socket on port %s with fd %d", port, servSock);
+    }
 
 	return servSock;
 }
@@ -50,12 +56,12 @@ int acceptTCPConnection(int servSock) {
 	// Wait for a client to connect
 	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
 	if (clntSock < 0) {
-		//log
+		log(ERROR, "Could not accept new connection");
 		return -1;
 	}
 
 	// clntSock is connected to a client!
-    //log
+    log(INFO, "Accepted new connection on socket %d", clntSock);
 	return clntSock;
 }
 
@@ -85,6 +91,7 @@ int handleTCPEchoClient(int clntSocket) {
 		}
 	}
 
-	close(clntSocket);
+	close(clntSocket); //todo error check
+	log(INFO, "Connection in socket %d closed succesfully", clntSocket);
 	return 0;
 }

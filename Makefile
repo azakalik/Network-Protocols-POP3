@@ -1,7 +1,7 @@
 CC=gcc
 STANDARD= -std=c11
 CFLAGS= -g -Wall -Wextra -pedantic -Wuninitialized -Wunused-variable -fsanitize=address -fsanitize=undefined -fsanitize=leak # -Werror $(STANDARD)
-COMMON_OBJS = util.o serverutils.o
+COMMON_OBJS = util.o serverutils.o logger.o
 PROGRAMS = tcps
 
 all: $(COMMON_OBJS) $(PROGRAMS)

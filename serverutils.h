@@ -17,6 +17,8 @@
 #include <sys/ioctl.h>
 #include <netdb.h>
 
+#define ERROR_CODE -1
+
 //the port the passive socket listens in
 #define SERVER_PORT 8082
 #define SERVER_PORT_STRING "8082"
