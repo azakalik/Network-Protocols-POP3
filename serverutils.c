@@ -26,6 +26,12 @@ int setupTCPPassiveSocket(char * port){
 			continue;       // Socket creation failed; try next address
 		}
 
+		int reusePort = 1; // Enable the reuse of local address and port
+		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEPORT, &reusePort, sizeof(reusePort)) == -1){
+			log(ERROR, "Error setting socket option: SO_REUSEPORT");
+		}
+
+
 		// Bind to ALL the address and set socket to listen
 		if ((bind(servSock, addr->ai_addr, addr->ai_addrlen) == 0) && (listen(servSock, MAX_WAITING) == 0)) {
             log(INFO, "Created succesfully a socket with: Family: %d, Socktype: %d, Protocol: %d.", addr->ai_family, addr->ai_socktype, addr->ai_protocol)
@@ -54,7 +60,7 @@ int acceptTCPConnection(int servSock) {
 	socklen_t clntAddrLen = sizeof(clntAddr);
 
 	// Wait for a client to connect
-	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
+	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen); //TODO make non-blocking
 	if (clntSock < 0) {
 		log(ERROR, "Could not accept new connection");
 		return -1;
@@ -91,7 +97,7 @@ int handleTCPEchoClient(int clntSocket) {
 		}
 	}
 
-	close(clntSocket); //todo error check
+	close(clntSocket); //todo error check. should it linger??
 	log(INFO, "Connection in socket %d closed succesfully", clntSocket);
 	return 0;
 }
