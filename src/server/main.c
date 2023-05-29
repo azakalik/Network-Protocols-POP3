@@ -14,6 +14,9 @@
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
 
+
+
+static void handleGreeting(user_data * user);
 static void handleClient(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
@@ -31,7 +34,7 @@ int main(int argc, char ** argv){
 		return 1;
 
     //-----------------------USER-DATA-INIT---------------------------------
-    //TODO: preguntar a coda tema ocnexiones estaticas (o array dinamico con malloc)
+    //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
     //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
@@ -86,9 +89,32 @@ static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData
         }
         if ( FD_ISSET(clntSocket,writeFds)){
             writeToClient(&usersData[i]);
+            handleStates(&usersData[i]);
         }
     }
 }
+
+static void handleGreeting(user_data * user){
+    if (user->session_state == GREETING){
+        if(isBufferEmpty(&user->output_buff)){
+            user->session_state = AUTHENTICATION;
+        }
+    }
+}
+
+//TODO: esto podria ser un vector de punteros a funcion por eficiencia. vale la pena?
+static void handleStates(user_data* user){
+    if(user->session_state == GREETING){
+        handleGreeting(user);
+    } else if(user->session_state == AUTHENTICATION){
+        // todo
+    } else if(user->session_state == TRANSACTION ){
+        // todo
+    } else { //session_state == UPDATE
+        //todo 
+    }
+}
+
 
 static void acceptConnection(user_data* connectedUsers,int servSock){
 
