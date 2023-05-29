@@ -1,3 +1,4 @@
+
 #include "circularBuffer.h"
 #include "../logger/logger.h"
 #include <stdbool.h>
@@ -25,7 +26,7 @@ void writeDataToBuffer(user_buffer * buff, char * src, int len){
         buff->writePtr = (buff->writePtr + 1) % BUFFERSIZE;
         buff->count++;
 
-         if ( isBufferFull(buff) ){
+        if ( isBufferFull(buff) ){
             log(FATAL,"Buffer is full, this shouldnt happen");
         }
     }

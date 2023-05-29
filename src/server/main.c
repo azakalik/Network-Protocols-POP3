@@ -32,6 +32,7 @@ int main(int argc, char ** argv){
 		return 1;
 
     //-----------------------USER-DATA-INIT---------------------------------
+    //TODO: preguntar a coda tema ocnexiones estaticas
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
 
@@ -48,17 +49,18 @@ int main(int argc, char ** argv){
         maxSock = servSock;
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
-        
         //we wait for select activity
+        // [4,5,6] -->readFds
         int selectStatus = select(maxSock + 1,&readFds,NULL,NULL,NULL);
+        // [5]
         if (selectStatus < 0){
             handleSelectActivityError();
             //TODO: preguntar a coda como manejar errores
             continue;
         }
 
-        //we check master socket for an incoming connection
-        if ( FD_ISSET(servSock,&readFds)){
+        //we check pasive socket for an incoming connection
+        if ( FD_ISSET(servSock,&readFds) ){
             acceptConnection(usersData,servSock);
         }
 
@@ -79,7 +81,7 @@ int main(int argc, char ** argv){
 
 static void handleClient(fd_set *fd, user_data *usersData, activity_handler activityCallback)
 {
-    
+
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clientSocket = usersData[i].socket;
         if ( !FD_ISSET(clientSocket,fd) )
@@ -88,8 +90,9 @@ static void handleClient(fd_set *fd, user_data *usersData, activity_handler acti
         if ( activityStatus < 0){
             log(FATAL,"error interacting with user\n");
         }
-        log(INFO,"preforming a reading operation\n");
+        log(INFO,"performing a reading/writing operation\n");
     }
+
 }
 
 static void acceptConnection(user_data* connectedUsers,int servSock){
@@ -100,7 +103,9 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 	socklen_t clntAddrLen = sizeof(clntAddr);
 
 	// Wait for a client to connect
+    //TODO: Preguntar a coda non-blocking
 	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
+
 	if (clntSock < 0) {
 		log(ERROR, "accept() failed");
 		exit(ACCEPT_FAILURE);
@@ -129,6 +134,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 
 
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users){
+    //TODO close stdin;
     int maxFd = *maxNumberFd;
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         int clientSocket = users[i].socket;
@@ -161,8 +167,6 @@ static void handleSelectActivityError(){
         log(ERROR,"unexpected error when handling select activity\n");
         break;
     }
-    
-
 }
 
 

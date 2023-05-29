@@ -1,5 +1,4 @@
 
-
 #define BUFFERSIZE 2048
 
 typedef struct {
