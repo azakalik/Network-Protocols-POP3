@@ -1,4 +1,4 @@
-#include "serverData.h"
+#include "serverFunctions.h"
 #include "serverUtils.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,13 +9,15 @@
 #include <sys/select.h>
 #include <errno.h>
 #include "../util/util.h"
+
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
 
+typedef int (*activity_handler)(user_data *);
 
-static void handleClientRead(fd_set * fd, user_data * usersData);
+static void handleClient(fd_set *fd, user_data *usersData, activity_handler activityCallback);
 static void acceptConnection(user_data* connectedUsers,int servSock);
-static void addClientsSocketsToSet(fd_set * set, int * maxNumberFd, user_data * users);
+static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 static void handleSelectActivityError();
 
 int main(int argc, char ** argv){
@@ -35,14 +37,18 @@ int main(int argc, char ** argv){
 
 
     fd_set readFds;
+    fd_set writeFds;
     int maxSock;//highest numbered socket
+    
     while (FOREVER)
     {
         FD_ZERO(&readFds);
+        FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
         maxSock = servSock;
-        addClientsSocketsToSet(&readFds,&maxSock,usersData);
-
+        //we add all sockets to sets
+        addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
+        
         //we wait for select activity
         int selectStatus = select(maxSock + 1,&readFds,NULL,NULL,NULL);
         if (selectStatus < 0){
@@ -57,30 +63,32 @@ int main(int argc, char ** argv){
         }
 
         //we handle client`s content
-        handleClientRead(&readFds,usersData);
-        
+        handleClient(&readFds,usersData,fetchClientInput);
+
+        //we handle client`s write
+        handleClient(&writeFds,usersData,writeToClient);
 
     }
+
+
+    close(servSock);
+    return 0;
 
 }
 
 
-static void handleClientRead(fd_set * fd, user_data * usersData){
-
-    char buffer[BUFFERSIZE];//Just for client connection accept testing
-    int valRead;
+static void handleClient(fd_set *fd, user_data *usersData, activity_handler activityCallback)
+{
     
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clientSocket = usersData[i].socket;
         if ( !FD_ISSET(clientSocket,fd) )
             continue;
-        valRead = read(clientSocket,buffer,BUFFERSIZE);
-        if (  valRead == 0){
-            log(INFO,"Client decided to close connection");
-        } else {
-            log(INFO,"Continue with the connection");
+        int activityStatus = activityCallback(&usersData[i]);
+        if ( activityStatus < 0){
+            log(FATAL,"error interacting with user\n");
         }
-        
+        log(INFO,"preforming a reading operation\n");
     }
 }
 
@@ -109,6 +117,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 
     if ( !allocatedClient ){
         log(ERROR,"Could not allocate client who requested to connect, users structure is full\n");
+        close(clntSock);
         exit(EXIT_FAILURE);
     }
     
@@ -119,12 +128,14 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 }
 
 
-static void addClientsSocketsToSet(fd_set * set, int * maxNumberFd, user_data * users){
+static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users){
     int maxFd = *maxNumberFd;
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         int clientSocket = users[i].socket;
-        if ( clientSocket > 0)
-            FD_SET(clientSocket,set);
+        if ( clientSocket > 0){
+            FD_SET(clientSocket,readSet);
+            FD_SET(clientSocket,writeSet);
+        }
         if ( clientSocket > maxFd)
             maxFd = clientSocket;
     }
@@ -147,6 +158,7 @@ static void handleSelectActivityError(){
     case ENOMEM:
         log(ERROR,"not enough memory to allocate required data for structures on select\n")
     default:
+        log(ERROR,"unexpected error when handling select activity\n");
         break;
     }
     

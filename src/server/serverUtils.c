@@ -1,11 +1,5 @@
-#include <sys/socket.h>
-#include <errno.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <string.h>
-#include "../logger/logger.h"
-#include "../util/util.h"
+#include "serverFunctions.h"
+#include "serverUtils.h"
 
 #define MAXPENDING 5 // Maximum outstanding connection requests
 #define BUFSIZE 256
@@ -65,3 +59,4 @@ int setupTCPServerSocket(const char *service) {
 
 	return servSock;
 }
+

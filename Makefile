@@ -1,25 +1,33 @@
-CC=gcc
-STANDARD= -std=c11
-CFLAGS= -g -Wall -Wextra -pedantic -Wuninitialized -Wunused-variable -fsanitize=address -fsanitize=undefined -fsanitize=leak # -Werror $(STANDARD)
-COMMON_OBJS = util.o serverutils.o logger.o
-PROGRAMS = tcps
+CC = gcc
+CFLAGS = -Wall -Iinclude -g 
+SRCDIR = src
+OBJDIR = obj
+BINDIR = bin
 
-all: $(COMMON_OBJS) $(PROGRAMS)
+SOURCES = $(wildcard $(SRCDIR)/*.c) $(wildcard $(SRCDIR)/*/*.c)
+OBJECTS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 
-tcps: tcpserver.c $(COMMON_OBJS)
-	$(CC) $(CFLAGS) -o tcps tcpserver.c $(COMMON_OBJS)
+TARGET = $(BINDIR)/project
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJECTS): | $(OBJDIR)
+$(TARGET): | $(BINDIR)
+
+$(OBJDIR) $(BINDIR):
+	@mkdir -p $@
+
+
+.PHONY: clean
 
 clean:
-	rm -rf *.dSYM $(PROGRAMS) *.o
+	rm -rf $(OBJDIR) $(BINDIR)
 
-### ABOUT THE FLAGS ###
-# -g					debug information
-# -Wall					enables a set of commonly used warnings. It includes warnings about common programming issues and potential bugs.
-# -Wextra				enables additional warnings beyond those enabled by -Wall. It covers a wider range of potential issues and encourages stricter coding practices.
-# -pedantic				enables strict ISO C and ISO C++ conformance. It provides warnings about language features that are non-standard or prone to portability issues.
-# -Werror				treats warnings as errors. It forces the compilation to fail if any warnings are encountered, making it useful for enforcing clean code.
-# -Wuninitialized 		warns about the use of uninitialized variables
-# -Wunused-variable		warns about unused variables
-# -fsanitize=address	Enables the AddressSanitizer, which helps detect memory errors such as buffer overflows, use-after-free, and memory leaks.
-# -fsanitize=undefined	Enables the UndefinedBehaviorSanitizer, which helps detect undefined behavior in your code.
-# -fsanitize=leak		Enables the LeakSanitizer, which helps detect memory leaks.
+all: $(TARGET)
+
+.DEFAULT_GOAL := all
