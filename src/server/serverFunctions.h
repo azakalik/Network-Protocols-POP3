@@ -1,3 +1,5 @@
+#ifndef SERVER_FUNCTIONS
+#define SERVER_FUNCTIONS
 
 #include <stdbool.h>
 #include "serverUtils.h"
@@ -18,12 +20,11 @@
 #define TEMPBUFFER 512
 
 typedef enum {
+    GREETING,
     AUTHENTICATION,
     TRANSACTION,
     UPDATE,
 } server_state;
-
-
 
 
 typedef struct {    
@@ -33,10 +34,12 @@ typedef struct {
     int socket;
 } user_data;
 
-int fetchClientInput(user_data * client);
+void fetchClientInput(user_data * client);
 
-int writeToClient(user_data * client);
+void writeToClient(user_data * client);
 
-int handleClientGreeting(user_data * client);
+int handleClientGreeting(user_data * client); //todo remove
 
 #define ACCEPT_FAILURE -1
+
+#endif

@@ -9,6 +9,9 @@ int getBufferFreeSpace(user_buffer * buff){
     return BUFFERSIZE - buff->count;
 }
 
+int getBufferOccupiedSpace(user_buffer * buff){
+    return buff->count;
+}
 
 
 int isBufferFull(user_buffer * buff){

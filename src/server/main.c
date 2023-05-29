@@ -9,13 +9,12 @@
 #include <sys/select.h>
 #include <errno.h>
 #include "../util/util.h"
+#include "popFunctions.h"
 
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
 
-typedef int (*activity_handler)(user_data *);
-
-static void handleClient(fd_set *fd, user_data *usersData, activity_handler activityCallback);
+static void handleClient(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 static void handleSelectActivityError();
@@ -52,7 +51,7 @@ int main(int argc, char ** argv){
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
         // [4,5,6] -->readFds
-        int selectStatus = select(maxSock + 1,&readFds,NULL,NULL,NULL);
+        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL,NULL);
         // [5]
         if (selectStatus < 0){
             handleSelectActivityError();
@@ -66,10 +65,7 @@ int main(int argc, char ** argv){
         }
 
         //we handle client`s content
-        handleClient(&readFds,usersData,fetchClientInput);
-
-        //we handle client`s write
-        handleClient(&writeFds,usersData,writeToClient);
+        handleClient(&readFds,&writeFds,usersData);
 
     }
 
@@ -80,16 +76,16 @@ int main(int argc, char ** argv){
 }
 
 //TODO: iterates the array twice in reading and writing (could be done once)
-static void handleClient(fd_set *fd, user_data *usersData, activity_handler activityCallback)
+static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
 {
     log(INFO,"performing a reading/writing operation");
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
-        int clientSocket = usersData[i].socket;
-        if ( !FD_ISSET(clientSocket,fd) )
-            continue;
-        int activityStatus = activityCallback(&usersData[i]);
-        if ( activityStatus < 0){
-            log(FATAL,"error interacting with user");
+        int clntSocket = usersData[i].socket;
+        if ( FD_ISSET(clntSocket,readFds)){
+            fetchClientInput(&usersData[i]);
+        }
+        if ( FD_ISSET(clntSocket,writeFds)){
+            writeToClient(&usersData[i]);
         }
     }
 }
@@ -111,11 +107,12 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 	}
 
     bool allocatedClient = false;
-    for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS ;i++){
+    for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
         if ( connectedUsers[i].socket == 0 ){
             connectedUsers[i].socket = clntSock;
-            connectedUsers[i].session_state = AUTHENTICATION;
+            connectedUsers[i].session_state = GREETING;
             allocatedClient = true;
+            sendGreeting(&connectedUsers[i]);
         }
     }
 
@@ -139,7 +136,8 @@ static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxN
         int clientSocket = users[i].socket;
         if ( clientSocket > 0){
             FD_SET(clientSocket,readSet);
-            FD_SET(clientSocket,writeSet);
+            if(!isBufferEmpty(&users[i].output_buff))
+                FD_SET(clientSocket,writeSet);
         }
         if ( clientSocket > maxFd)
             maxFd = clientSocket;

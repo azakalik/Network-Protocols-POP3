@@ -1,3 +1,6 @@
+#ifndef CIRCULAR_BUFFER
+#define CIRCULAR_BUFFER
+
 
 #define BUFFERSIZE 2048
 
@@ -8,6 +11,7 @@ typedef struct {
     int writePtr;
 } user_buffer;
 
+int getBufferOccupiedSpace(user_buffer * buff);
 
 int getBufferFreeSpace(user_buffer * buff);
 
@@ -17,5 +21,6 @@ int isBufferEmpty(user_buffer * buff);
 
 void writeDataToBuffer(user_buffer * buff, char * src, int len);
 
-
 int readDataFromBuffer(user_buffer * buff, char * dest, int len);
+
+#endif
