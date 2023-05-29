@@ -2,8 +2,6 @@
 #include <string.h>
 
 
-
-
 typedef enum {
     USER
 } parser_type;

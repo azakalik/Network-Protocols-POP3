@@ -3,29 +3,22 @@
 
 
 int fetchClientInput(user_data * client){
-    //we can read from client socket, operation is non blocking
-    switch (client->session_state)
-    {
-    case GREETING:
-        break;//greeting is a write operation
-    
-    default:
-        break;
-    }
+    char delete[BUFFERSIZE];
+    recv(client->socket, delete, BUFFERSIZE, 0);
     return 0;
 }
 
 
 int writeToClient(user_data * client){
-    switch (client->session_state)
-    {
-    case GREETING:
-        handleClientGreeting(client);
-        break;
+    // switch (client->session_state)
+    // {
+    // case GREETING:
+    //     handleClientGreeting(client);
+    //     break;
     
-    default:
-        break;
-    }
+    // default:
+    //     break;
+    // }
     return 0;
 }
 

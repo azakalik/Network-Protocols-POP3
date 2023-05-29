@@ -18,7 +18,6 @@
 #define TEMPBUFFER 512
 
 typedef enum {
-    GREETING,
     AUTHENTICATION,
     TRANSACTION,
     UPDATE,

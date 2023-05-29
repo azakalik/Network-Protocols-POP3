@@ -39,6 +39,11 @@ int setupTCPServerSocket(const char *service) {
 			continue;       // Socket creation failed; try next address
 		}
 
+		int reusePort = 1; // Enable the reuse of local address and port
+		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEPORT, &reusePort, sizeof(reusePort)) == -1){
+			log(ERROR, "Error setting socket option: SO_REUSEPORT");
+		}
+		
 		// Bind to ALL the address and set socket to listen
 		if ((bind(servSock, addr->ai_addr, addr->ai_addrlen) == 0) && (listen(servSock, MAXPENDING) == 0)) {
 			// Print local address of socket

@@ -32,7 +32,8 @@ int main(int argc, char ** argv){
 		return 1;
 
     //-----------------------USER-DATA-INIT---------------------------------
-    //TODO: preguntar a coda tema ocnexiones estaticas
+    //TODO: preguntar a coda tema ocnexiones estaticas (o array dinamico con malloc)
+    //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
 
@@ -78,21 +79,19 @@ int main(int argc, char ** argv){
 
 }
 
-
+//TODO: iterates the array twice in reading and writing (could be done once)
 static void handleClient(fd_set *fd, user_data *usersData, activity_handler activityCallback)
 {
-
+    log(INFO,"performing a reading/writing operation");
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clientSocket = usersData[i].socket;
         if ( !FD_ISSET(clientSocket,fd) )
             continue;
         int activityStatus = activityCallback(&usersData[i]);
         if ( activityStatus < 0){
-            log(FATAL,"error interacting with user\n");
+            log(FATAL,"error interacting with user");
         }
-        log(INFO,"performing a reading/writing operation\n");
     }
-
 }
 
 static void acceptConnection(user_data* connectedUsers,int servSock){
@@ -115,7 +114,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
     for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS ;i++){
         if ( connectedUsers[i].socket == 0 ){
             connectedUsers[i].socket = clntSock;
-            connectedUsers[i].session_state = GREETING;
+            connectedUsers[i].session_state = AUTHENTICATION;
             allocatedClient = true;
         }
     }
