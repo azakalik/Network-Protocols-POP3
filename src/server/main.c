@@ -8,19 +8,31 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 #include <errno.h>
+#include <signal.h>
 #include "../util/util.h"
 #include "popFunctions.h"
 
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
-
-
+#define NOT_INITIALIZED 1
 
 static void handleGreeting(user_data * user);
 static void handleClient(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 static void handleSelectActivityError();
+static void handleProgramTermination();
+static void handleStates(user_data* user);
+
+int servSock = NOT_INITIALIZED;
+
+static bool serverRunning = true;
+
+static void
+sigterm_handler(const int signal) {
+    log(INFO, "Signal %d, cleaning up and exiting\n",signal);
+    serverRunning = false;
+}
 
 int main(int argc, char ** argv){
 
@@ -29,9 +41,11 @@ int main(int argc, char ** argv){
 		log(FATAL, "usage: %s <Server Port>", argv[0]);
 	}
 	char * servPort = argv[1];
-	int servSock = setupTCPServerSocket(servPort);
+	servSock = setupTCPServerSocket(servPort);
 	if (servSock < 0 )
 		return 1;
+
+    handleProgramTermination();
 
     //-----------------------USER-DATA-INIT---------------------------------
     //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
@@ -44,7 +58,7 @@ int main(int argc, char ** argv){
     fd_set writeFds;
     int maxSock;//highest numbered socket
     
-    while (FOREVER)
+    while (serverRunning)
     {
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
@@ -192,6 +206,11 @@ static void handleSelectActivityError(){
     }
 }
 
-
+static void handleProgramTermination(){
+    // registrar sigterm es útil para terminar el programa normalmente.
+    // esto ayuda mucho en herramientas como valgrind.
+    signal(SIGTERM, sigterm_handler);
+    signal(SIGINT,  sigterm_handler);
+}
 
 

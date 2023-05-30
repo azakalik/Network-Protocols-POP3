@@ -39,8 +39,8 @@ int setupTCPServerSocket(const char *service) {
 			continue;       // Socket creation failed; try next address
 		}
 
-		int reusePort = 1; // Enable the reuse of local address and port
-		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEPORT, &reusePort, sizeof(reusePort)) == -1){
+		// Enable the reuse of local address and port
+		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEPORT, &(int){ 1 }, sizeof(int)) == -1){
 			log(ERROR, "Error setting socket option: SO_REUSEPORT");
 		}
 		
