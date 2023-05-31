@@ -40,8 +40,8 @@ int setupTCPServerSocket(const char *service) {
 		}
 
 		// Enable the reuse of local address and port
-		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEPORT, &(int){ 1 }, sizeof(int)) == -1){
-			log(ERROR, "Error setting socket option: SO_REUSEPORT");
+		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) == -1){
+			log(ERROR, "Error setting socket option: SO_REUSEADDR");
 		}
 		
 		// Bind to ALL the address and set socket to listen

@@ -1,7 +1,5 @@
-CC = gcc
-STANDARD= -std=c11
-#CFLAGS= -g -Wall -Wextra -pedantic -Wuninitialized -Wunused-variable -fsanitize=address -fsanitize=undefined -fsanitize=leak  $(STANDARD) #  -Werror
-CFLAGS = -Wall -Iinclude -g 
+#STANDARD= -std=c11
+CFLAGS = $(STANDARD) -pedantic -pedantic-errors -g -Wall -Wextra -Wno-unused-parameter -Wno-newline-eof -Wno-implicit-fallthrough -D_POSIX_C_SOURCE=200112L -fsanitize=address -Wuninitialized -Wunused-variable -fsanitize=undefined -fsanitize=leak -Werror
 SRCDIR = src
 OBJDIR = obj
 BINDIR = bin

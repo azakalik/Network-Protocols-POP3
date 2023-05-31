@@ -47,6 +47,9 @@ int main(int argc, char ** argv){
 
     handleProgramTermination();
 
+    //stdin will not be used
+    close(0);
+
     //-----------------------USER-DATA-INIT---------------------------------
     //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
     //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
@@ -92,7 +95,6 @@ int main(int argc, char ** argv){
 
 }
 
-//TODO: iterates the array twice in reading and writing (could be done once)
 static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
 {
     log(INFO,"performing a reading/writing operation");
@@ -170,7 +172,6 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 
 
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users){
-    //TODO close stdin;
     int maxFd = *maxNumberFd;
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         int clientSocket = users[i].socket;
@@ -199,7 +200,7 @@ static void handleSelectActivityError(){
         log(ERROR,"The highest fd + 1 is negative or exeeds system limit\n");
         break;
     case ENOMEM:
-        log(ERROR,"not enough memory to allocate required data for structures on select\n")
+        log(ERROR,"not enough memory to allocate required data for structures on select\n");
     default:
         log(ERROR,"unexpected error when handling select activity\n");
         break;
