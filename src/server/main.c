@@ -48,7 +48,7 @@ int main(int argc, char ** argv){
     handleProgramTermination();
 
     //stdin will not be used
-    close(0);
+    close(STDIN_FILENO);
 
     //-----------------------USER-DATA-INIT---------------------------------
     //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
