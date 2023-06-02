@@ -35,20 +35,19 @@ sigterm_handler(const int signal) {
 }
 
 int main(int argc, char ** argv){
-
+    // stdin will not be used
+    // close(STDIN_FILENO); -> TODOOOO
     //----------------------SOCKET CREATION---------------------------------------
 	if (argc != 2) {
 		log(FATAL, "usage: %s <Server Port>", argv[0]);
 	}
 	char * servPort = argv[1];
+    //servSock va a ser = 0
 	servSock = setupTCPServerSocket(servPort);
 	if (servSock < 0 )
 		return 1;
 
     handleProgramTermination();
-
-    //stdin will not be used
-    close(STDIN_FILENO);
 
     //-----------------------USER-DATA-INIT---------------------------------
     //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
@@ -60,7 +59,6 @@ int main(int argc, char ** argv){
     fd_set readFds;
     fd_set writeFds;
     int maxSock;//highest numbered socket
-    
     while (serverRunning)
     {
         FD_ZERO(&readFds);
@@ -101,7 +99,7 @@ static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clntSocket = usersData[i].socket;
         if ( FD_ISSET(clntSocket,readFds)){
-            fetchClientInput(&usersData[i]);
+            handleClientInput(&usersData[i]);
         }
         if ( FD_ISSET(clntSocket,writeFds)){
             writeToClient(&usersData[i]);
@@ -111,18 +109,13 @@ static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData
 }
 
 static void handleGreeting(user_data * user){
-    if (user->session_state == GREETING){
-        if(isBufferEmpty(&user->output_buff)){
-            user->session_state = AUTHENTICATION;
-        }
-    }
+    char * welcomeMessage = "+OK Pop3 Server ready\r\n";
+    writeDataToBuffer(&user->output_buff, welcomeMessage, strlen(welcomeMessage));
 }
 
 //TODO: esto podria ser un vector de punteros a funcion por eficiencia. vale la pena?
 static void handleStates(user_data* user){
-    if(user->session_state == GREETING){
-        handleGreeting(user);
-    } else if(user->session_state == AUTHENTICATION){
+    if(user->session_state == AUTHENTICATION){
         // todo
     } else if(user->session_state == TRANSACTION ){
         // todo
@@ -150,11 +143,13 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 
     bool allocatedClient = false;
     for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
+        //only passive socket has fd 0
         if ( connectedUsers[i].socket == 0 ){
             connectedUsers[i].socket = clntSock;
-            connectedUsers[i].session_state = GREETING;
+            connectedUsers[i].session_state = AUTHENTICATION;
+            connectedUsers[i].client_state = WRITING;
             allocatedClient = true;
-            sendGreeting(&connectedUsers[i]);
+            handleGreeting(&connectedUsers[i]);
         }
     }
 
@@ -163,6 +158,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
         close(clntSock);
         exit(EXIT_FAILURE);
     }
+
     
 	// clntSock is connected to a client!
 	printSocketAddress((struct sockaddr *) &clntAddr, addrBuffer);

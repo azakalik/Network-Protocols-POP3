@@ -5,28 +5,6 @@ void releaseSocketResources(user_data * data){
     memset(data,0,sizeof(user_data));
 }
 
-void fetchClientInput(user_data * client){
-    if(isBufferFull(&client->entry_buff)){
-        return;
-    }
-    
-    int freeSpace = getBufferFreeSpace(&client->entry_buff);
-    char auxiliaryBuffer[freeSpace];
-    int bytesRead = recv(client->socket, auxiliaryBuffer, freeSpace, 0);
-    
-    if ( bytesRead <= 0){
-        //client closed connection, that position is released
-        if ( bytesRead < 0){
-            log(ERROR,"Error while doing recv for socket %d",client->socket);
-        }
-        releaseSocketResources(client);
-        return;
-    }
-
-
-    writeDataToBuffer(&client->entry_buff,auxiliaryBuffer, bytesRead);
-}
-
 void writeToClient(user_data * client){
     int toWrite = getBufferOccupiedSpace(&client->output_buff);
     if(toWrite==0)
@@ -46,17 +24,28 @@ void writeToClient(user_data * client){
         int bytesToWriteBack = toWrite - bytesSent;
         char * notSendPosition = auxiliaryBuffer + bytesSent; 
         writeDataToBuffer(&client->entry_buff, notSendPosition , bytesToWriteBack );
+        return;
     }
+
 
     return;
 }
 
-int handleClientGreeting(user_data * client){
-    //TODO: charlar con zaka un poco de como seria si el cliente no lee
-    char * greeting = "+OK POP3 server ready";
-    int bytesSent = send(client->socket,greeting,strlen(greeting),0);
-    if ( bytesSent < 0){
-        log(FATAL,"could not send bytes to client for greeting");
+
+void handleClientInput(user_data * client){
+    int maxPopSize = 1024; //todo !!!
+    char auxiliaryBuffer[maxPopSize];
+    int bytesRead = recv(client->socket, auxiliaryBuffer, maxPopSize, 0);
+    
+    if ( bytesRead <= 0){
+        //client closed connection, that position is released
+        if ( bytesRead < 0){
+            log(ERROR,"Error while doing recv for socket %d",client->socket);
+        }
+        log(INFO, "The client in socket %d sent a EOF. Releasing his resources...", client->socket);
+        releaseSocketResources(client);
+        return;
     }
-    return bytesSent;
+
+    //todo populate command array
 }

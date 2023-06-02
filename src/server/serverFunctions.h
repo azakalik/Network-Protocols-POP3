@@ -19,26 +19,42 @@
 
 #define TEMPBUFFER 512
 
+// struct fullCommand {
+//     COMMAND,
+//     ARG1,
+//     ARG2,
+//     struct status commandStatus,
+// };
+
+// struct status {
+//     WRITINGCOMMAND,
+//     WRITINGARG1,
+//     WRITINGARG2,
+//     COMPLETE,
+// };
+
 typedef enum {
-    GREETING,
+    READING,
+    WRITING,
+} client_state;
+
+typedef enum {
     AUTHENTICATION,
     TRANSACTION,
     UPDATE,
-} server_state;
+} pop_state;
 
 
 typedef struct {    
     user_buffer entry_buff;
     user_buffer output_buff;
-    server_state session_state;
+    pop_state session_state;
+    client_state client_state;
     int socket;
 } user_data;
 
-void fetchClientInput(user_data * client);
-
 void writeToClient(user_data * client);
-
-int handleClientGreeting(user_data * client); //todo remove
+void handleClientInput(user_data * client);
 
 #define ACCEPT_FAILURE -1
 
