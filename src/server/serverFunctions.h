@@ -18,20 +18,28 @@
 #include <netdb.h>
 
 #define TEMPBUFFER 512
+#define MAXCOMMANDSIZE 4 //without null term
+#define MAXARGSIZE 40 //without null term
+#define MAXLINESIZE 255 //with final crlf
+//max size for the first line of server response (including crlf)
+#define MAXANSWERSIZE 512
 
-// struct fullCommand {
-//     COMMAND,
-//     ARG1,
-//     ARG2,
-//     struct status commandStatus,
-// };
 
-// struct status {
-//     WRITINGCOMMAND,
-//     WRITINGARG1,
-//     WRITINGARG2,
-//     COMPLETE,
-// };
+typedef enum {
+    WRITINGCOMMAND,
+    WRITINGARG1,
+    WRITINGARG2,
+    COMPLETE,
+} command_status;
+
+
+//strings are null terminated
+struct fullCommand {
+    char command[MAXCOMMANDSIZE + 1];
+    char arg1[MAXARGSIZE + 1];
+    char  arg2[MAXARGSIZE + 1];
+    command_status commandStatus;
+};
 
 typedef enum {
     READING,
