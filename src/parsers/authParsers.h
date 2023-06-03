@@ -1,3 +1,5 @@
+//todo esto no sirve, borrar
+
 #ifndef AUTH_PARSERS
 #define AUTH_PARSERS
 

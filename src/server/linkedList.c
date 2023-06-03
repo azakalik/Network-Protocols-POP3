@@ -30,6 +30,10 @@ typedef enum{
 
 #define VALIDTHREELETTERSCOMMANDSIZE 1
 #define VALIDFOURLETTERSCOMMANDSIZE 9
+#define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
+#define THREELENGTHCOMMAND 3
+#define FOURLENGTHCOMMAND 4
+#define VALIDCOMMANDSLENGTH 10
 
 
 typedef enum {
@@ -49,13 +53,11 @@ typedef struct {
     char * commandStr;
     to_execute_command commandName;
 } valid_command_list;
-#define THREELENGTHCOMMAND 3
-#define FOURLENGTHCOMMAND 4
-#define VALIDCOMMANDSLENGTH 10
-valid_command_list validCommands[VALIDFOURLETTERSCOMMANDSIZE] = { {"TOP",TOP},{"USER",USER},{"PASS",PASS},{"STAT",STAT},{"LIST",LIST},{"RETR",RETR},
-                                                                            {"DELE",DELE},{"NOOP",NOOP},{"RSET",RSET},{"QUIT",QUIT},
-                                                                          };
 
+valid_command_list validCommands[TOTALCOMMANDS] = {
+    {"TOP",TOP},{"USER",USER},{"PASS",PASS},{"STAT",STAT},{"LIST",LIST},{"RETR",RETR},
+    {"DELE",DELE},{"NOOP",NOOP},{"RSET",RSET},{"QUIT",QUIT}
+};
 
 
 typedef struct {
@@ -110,7 +112,7 @@ command_list * createList(){
 static bool checkValidCommand(command_buffer * command, to_execute_command * commandName){
     bool commandFound = false;
     for ( int i = 0;!commandFound && i < VALIDCOMMANDSLENGTH ; i++){
-        if ( strcmp(validCommands[i].commandStr,command)){
+        if ( strcmp(validCommands[i].commandStr,command->buffer)){
             *commandName = validCommands[i].commandName;
             commandFound = true;
         }

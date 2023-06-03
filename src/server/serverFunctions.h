@@ -24,23 +24,6 @@
 //max size for the first line of server response (including crlf)
 #define MAXANSWERSIZE 512
 
-
-typedef enum {
-    WRITINGCOMMAND,
-    WRITINGARG1,
-    WRITINGARG2,
-    COMPLETE,
-} command_status;
-
-
-//strings are null terminated
-struct fullCommand {
-    char command[MAXCOMMANDSIZE + 1];
-    char arg1[MAXARGSIZE + 1];
-    char  arg2[MAXARGSIZE + 1];
-    command_status commandStatus;
-};
-
 typedef enum {
     READING,
     WRITING,
