@@ -26,7 +26,6 @@ typedef enum{
 #define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
 #define THREELENGTHCOMMAND 3
 #define FOURLENGTHCOMMAND 4
-#define VALIDCOMMANDSLENGTH 10
 
 
 typedef enum {
@@ -40,11 +39,11 @@ typedef enum {
     RSET,
     QUIT,
     TOP
-} to_execute_command;
+} command_id;
 
 typedef struct {
     char * commandStr;
-    to_execute_command commandName;
+    command_id execute_command;
 } valid_command_list;
 
 valid_command_list validCommands[TOTALCOMMANDS] = {
@@ -67,13 +66,9 @@ typedef struct {
     command_buffer command;
     arg_buffer arg1;
     arg_buffer arg2;
-    to_execute_command executeCommandName;
-} command_data;
-
-typedef struct {
-    command_data commandData;
+    command_id execute_command;
     command_status commandStatus;
-} command;
+} full_command;
 
 typedef struct {
     struct command_node *first;
@@ -81,18 +76,19 @@ typedef struct {
 } command_list;
 
 typedef struct command_node {
-    command data;
+    full_command data;
     struct command_node *next;
 } command_node;
 
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ AUXILIARY FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
-//returns true on found command and sets to_execute_command apropiately
-static bool checkValidCommand(command_buffer * command, to_execute_command * commandName){
+//returns true on found command and sets command_id apropiately
+//todo make more efficient
+static bool checkValidCommand(full_command * full_command){
     bool commandFound = false;
-    for ( int i = 0;!commandFound && i < VALIDCOMMANDSLENGTH ; i++){
-        if ( strcmp(validCommands[i].commandStr,command->buffer)){
-            *commandName = validCommands[i].commandName;
+    for ( int i = 0; !commandFound && i < TOTALCOMMANDS; i++){
+        if ( strcmp(validCommands[i].commandStr, full_command->command.buffer)){
+            full_command->execute_command = validCommands[i].execute_command;
             commandFound = true;
         }
     }
@@ -100,37 +96,46 @@ static bool checkValidCommand(command_buffer * command, to_execute_command * com
    
 }
 
-static void processWritingCommand(command * command, char * data){
+static void processWritingCommand(full_command * full_command, char * data){
+    if (data == NULL)
+        return;
 
-    command_data* commandData = &command->commandData;
     bool finishedCommandParsing = false;
-    for ( int i = 0; commandData->command.currentBufferIdx < MAXCOMMANDSIZE && data[i] != 0 && !finishedCommandParsing; ){
-        if ( commandData->command.currentBufferIdx == THREELENGTHCOMMAND || commandData->command.currentBufferIdx == FOURLENGTHCOMMAND){
-            finishedCommandParsing = checkValidCommand(&commandData->command,&commandData->executeCommandName);
-            if ( finishedCommandParsing ){
-                //TODO VER SI PODEMOS DEFINIR ACA QUE EL COMANDO TERMINO
-                command->commandStatus = WRITINGARG1;
-            }
+
+    int idx = full_command->command.currentBufferIdx;
+
+    for (int i = 0; !finishedCommandParsing && idx + i < MAXCOMMANDSIZE; i++){
+        if (data[i] == 0){
+            finishedCommandParsing = true;
+        } else if (data[i] == ' '){
+            full_command->commandStatus = WRITINGARG1;
+            finishedCommandParsing = true;
+        } else if (data[i] == '\r' && data[i+1] == '\n'){
+            full_command->commandStatus = COMPLETE;
+            finishedCommandParsing = true;
+        } else {
+            full_command->command.currentBufferIdx = idx + i;
         }
     }
+    if(finishedCommandParsing)
+        checkValidCommand(full_command);
 }
 
 
 static void processNode(command_node * node, char * data){
-
+    //todo hacer vector de punteros a funcion
     switch (node->data.commandStatus)
     {
-    case WRITINGCOMMAND:
-        processWritingCommand(&node->data,data);
-        break;
-    case WRITINGARG1:
-    case WRITINGARG2:
+        case WRITINGCOMMAND:
+            processWritingCommand(&node->data,data);
+            break;
+        case WRITINGARG1:
+        case WRITINGARG2:
 
-        break;
-    default:
-        break;
+            break;
+        default:
+            break;
     }
-    
 
 }
 
@@ -181,11 +186,11 @@ bool availableCommands(command_list * list){
 //returns null if there is no COMPLETE command to return
 //returns the first struct command if there is a COMPLETE one to return. it then removes it from the list
 //the user HAS to free it
-command * getFirstCommand(command_list * list){
+full_command * getFirstCommand(command_list * list){
     if (!availableCommands(list))
         return NULL;
     
-    command * toReturn = (command *) list->first;
+    full_command * toReturn = (full_command *) list->first;
 
     if(list->first == list->last){
         list->last = list->first = NULL;
@@ -196,7 +201,7 @@ command * getFirstCommand(command_list * list){
     return toReturn;
 }
 
-void freeCommand(command_list * list, command * command){ //todo fijarse si es necesario
+void freeCommand(command_list * list, full_command * command){ //todo fijarse si es necesario
     free( (command_node *) command );
 }
 
