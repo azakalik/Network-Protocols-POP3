@@ -160,7 +160,7 @@ bool addData(command_list *list, char * data) {
 
     command_node * nodeToProcess;
     if ( list->first == NULL ) {
-        command_node * newNode = createNewNode();
+        command_node * newNode = createNewNode(); //todo check NULL
         list->first = list->last = newNode;
         nodeToProcess = newNode;
     } else if ( list->last->data.commandStatus == COMPLETE) {
