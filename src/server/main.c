@@ -45,7 +45,7 @@ int main(int argc, char ** argv){
 		log(FATAL, "usage: %s <Server Port>", argv[0]);
 	}
 	char * servPort = argv[1];
-    //servSock va a ser = 0
+    //servSock va a ser = 0 porque cerramos stdin
 	servSock = setupTCPServerSocket(servPort);
 	if (servSock < 0 )
 		return 1;
@@ -64,6 +64,11 @@ int main(int argc, char ** argv){
     int maxSock;//highest numbered socket
     while (serverRunning)
     {
+        // sigset_t mask;
+        // sigemptyset(&mask);
+        // sigaddset(&mask, SIGINT);
+        // sigaddset(&mask, SIGTERM);
+
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
@@ -71,15 +76,14 @@ int main(int argc, char ** argv){
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
-        // [4,5,6] -->readFds
-        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL,NULL);
-        // [5]
+        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL, NULL/*, &mask*/);
         if (selectStatus < 0){
             handleSelectActivityError();
             //TODO: preguntar a coda como manejar errores
             continue;
         }
 
+        
         //we check pasive socket for an incoming connection
         if ( FD_ISSET(servSock,&readFds) ){
             acceptConnection(usersData,servSock);
@@ -216,7 +220,7 @@ static void handleSelectActivityError(){
         log(ERROR,"One or more fd in the set are not valid\n");
         break;
     case EINTR:
-        log(ERROR,"The select was interrupted by a signal before any request event occured\n");
+        log(INFO,"The select was interrupted by a signal before any request event occured\n");
         break;
     case EINVAL:
         log(ERROR,"The highest fd + 1 is negative or exeeds system limit\n");
@@ -232,8 +236,19 @@ static void handleSelectActivityError(){
 static void handleProgramTermination(){
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.
-    signal(SIGTERM, sigterm_handler);
-    signal(SIGINT,  sigterm_handler);
+    // signal() esta deprecated
+    struct sigaction sa;
+    sa.sa_handler = sigterm_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        log(FATAL, "sigaction(SIGTERM) failed");
+    }
+
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        log(FATAL, "sigaction(SIGINT) failed");
+    }
 }
 
 
