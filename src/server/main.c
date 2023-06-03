@@ -11,6 +11,7 @@
 #include <signal.h>
 #include "../util/util.h"
 #include "popFunctions.h"
+#include "../parsers/commandList.h"
 
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
@@ -23,6 +24,8 @@ static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxN
 static void handleSelectActivityError();
 static void handleProgramTermination();
 static void handleStates(user_data* user);
+static void closeClient(user_data usersData[], int position);
+static void closeAllClients(user_data usersData[]);
 
 int servSock = NOT_INITIALIZED;
 
@@ -86,11 +89,27 @@ int main(int argc, char ** argv){
         handleClient(&readFds,&writeFds,usersData);
 
     }
-
-
+    closeAllClients(usersData);
     close(servSock);
     return 0;
 
+}
+
+static void closeClient(user_data usersData[], int position){
+    user_data client = usersData[position];
+    if(client.socket == 0)
+        return;
+
+    log(INFO, "Closing client on fd %d and freeing its resources", client.socket);
+    destroyList(client.command_list);
+    close(client.socket);
+    usersData[position].socket = 0; //to mark it as unoccupied
+}
+
+static void closeAllClients(user_data usersData[]){
+    for (int i = 0; i < MAX_CONNECTIONS; i++){
+        closeClient(usersData, i);
+    }
 }
 
 static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
@@ -142,19 +161,26 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 	}
 
     bool allocatedClient = false;
+    user_data user;
     for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
         //only passive socket has fd 0
         if ( connectedUsers[i].socket == 0 ){
             connectedUsers[i].socket = clntSock;
             connectedUsers[i].session_state = AUTHENTICATION;
             connectedUsers[i].client_state = WRITING;
+            connectedUsers[i].command_list = createList();
             allocatedClient = true;
+            user = connectedUsers[i];
             handleGreeting(&connectedUsers[i]);
         }
     }
 
     if ( !allocatedClient ){
-        log(ERROR,"Could not allocate client who requested to connect, users structure is full\n");
+        log(ERROR,"Could not allocate client who requested to connect, users structure is full");
+        close(clntSock);
+        exit(EXIT_FAILURE); //todo dont exit!
+    } else if (user.command_list == NULL){
+        log(ERROR,"Could not allocate memory for a command list in a new connection");
         close(clntSock);
         exit(EXIT_FAILURE);
     }

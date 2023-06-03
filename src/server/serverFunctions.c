@@ -1,4 +1,5 @@
 #include "serverFunctions.h"
+#include "../parsers/commandList.h"
 
 void releaseSocketResources(user_data * data){
     close(data->socket);
@@ -23,7 +24,7 @@ void writeToClient(user_data * client){
     if (bytesSent < toWrite){
         int bytesToWriteBack = toWrite - bytesSent;
         char * notSendPosition = auxiliaryBuffer + bytesSent; 
-        writeDataToBuffer(&client->entry_buff, notSendPosition , bytesToWriteBack );
+        writeDataToBuffer(&client->output_buff, notSendPosition , bytesToWriteBack );
         return;
     }
 
@@ -33,9 +34,9 @@ void writeToClient(user_data * client){
 
 
 void handleClientInput(user_data * client){
-    int maxPopSize = 1024; //todo !!!
-    char auxiliaryBuffer[maxPopSize];
-    int bytesRead = recv(client->socket, auxiliaryBuffer, maxPopSize, 0);
+    char auxiliaryBuffer[MAXLINESIZE+1];
+    int bytesRead = recv(client->socket, auxiliaryBuffer, MAXLINESIZE, 0);
+    auxiliaryBuffer[bytesRead] = 0; //null terminate
     
     if ( bytesRead <= 0){
         //client closed connection, that position is released
@@ -47,5 +48,5 @@ void handleClientInput(user_data * client){
         return;
     }
 
-    //todo populate command array
+    addData(client->command_list, auxiliaryBuffer);
 }

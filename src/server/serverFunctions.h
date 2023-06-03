@@ -36,8 +36,8 @@ typedef enum {
 } pop_state;
 
 
-typedef struct {    
-    user_buffer entry_buff;
+typedef struct {
+    struct command_list * command_list;
     user_buffer output_buff;
     pop_state session_state;
     client_state client_state;

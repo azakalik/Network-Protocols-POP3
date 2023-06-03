@@ -87,7 +87,7 @@ typedef struct command_node {
 static bool checkValidCommand(full_command * full_command){
     bool commandFound = false;
     for ( int i = 0; !commandFound && i < TOTALCOMMANDS; i++){
-        if ( strcmp(validCommands[i].commandStr, full_command->command.buffer)){
+        if ( strcmp(validCommands[i].commandStr, full_command->command.buffer) == 0 ){
             full_command->execute_command = validCommands[i].execute_command;
             commandFound = true;
         }
@@ -108,12 +108,13 @@ static void processWritingCommand(full_command * full_command, char * data){
         if (data[i] == 0){
             finishedCommandParsing = true;
         } else if (data[i] == ' '){
-            full_command->commandStatus = WRITINGARG1;
+            full_command->commandStatus = WRITINGARG1; //todo call processNode again
             finishedCommandParsing = true;
         } else if (data[i] == '\r' && data[i+1] == '\n'){
             full_command->commandStatus = COMPLETE;
             finishedCommandParsing = true;
         } else {
+            full_command->command.buffer[idx + i] = data[i];
             full_command->command.currentBufferIdx = idx + i;
         }
     }
