@@ -1,12 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-#include "serverFunctions.h"
+#include "../server/serverFunctions.h"
 #include <stdio.h>
-
-// primer nodo (para consumir comandos completos)
-// ultimo nodo (para ver si tiene que seguir escribiendo ahi)
-// agregar un nodo al final
-// borrar un nodo del principio
 
 /*
 STAT Command ................................................    6
@@ -18,8 +13,6 @@ RSET Command ................................................    9
 The UPDATE State ............................................   10
 QUIT Command ................................................   10
 */
-
-
 
 typedef enum{    
     WRITINGCOMMAND,
@@ -60,17 +53,15 @@ valid_command_list validCommands[TOTALCOMMANDS] = {
 };
 
 
-typedef struct {
+typedef struct {// strings are null terminated
     char buffer[MAXCOMMANDSIZE + 1];
     int currentBufferIdx;
 } command_buffer;
 
-typedef struct {
+typedef struct {// strings are null terminated
     char buffer[MAXARGSIZE + 1];
     int currentBufferIdx;
 } arg_buffer;
-
-
 
 typedef struct {
     command_buffer command;
@@ -79,34 +70,22 @@ typedef struct {
     to_execute_command executeCommandName;
 } command_data;
 
-
-
-
-
-// strings are null terminated
-typedef struct{
+typedef struct {
     command_data commandData;
     command_status commandStatus;
 } command;
-
-
 
 typedef struct {
     struct command_node *first;
     struct command_node *last;
 } command_list;
 
-
 typedef struct command_node {
     command data;
     struct command_node *next;
 } command_node;
 
-
-command_list * createList(){
-    command_list * list = calloc(sizeof(command_list), 1);
-    return list;
-}
+//↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ AUXILIARY FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
 //returns true on found command and sets to_execute_command apropiately
 static bool checkValidCommand(command_buffer * command, to_execute_command * commandName){
@@ -134,9 +113,6 @@ static void processWritingCommand(command * command, char * data){
             }
         }
     }
-
-    
-
 }
 
 
@@ -159,9 +135,17 @@ static void processNode(command_node * node, char * data){
 }
 
 static command_node * createNewNode(){
-    command_node * newNode = calloc(sizeof(command_node),1);
+    command_node * newNode = (command_node *) calloc(sizeof(command_node),1);
     newNode ->data.commandStatus = WRITINGCOMMAND;
     return newNode;
+}
+
+//↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ AUXILIARY FUNCTIONS ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+//----------------------------------------------------------------------------------------------
+//↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ MAIN FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+command_list * createList(){
+    command_list * list = (command_list *) calloc(sizeof(command_list), 1);
+    return list;
 }
 
 bool addData(command_list *list, char * data) {
@@ -231,3 +215,4 @@ void destroyList(command_list * list) {
     
     free(list);
 }
+//↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ MAIN FUNCTIONS      ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
