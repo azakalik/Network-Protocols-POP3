@@ -59,6 +59,9 @@ int main(int argc, char ** argv){
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
 
+
+    getUserMails("sranucci",NULL);
+
     fd_set readFds;
     fd_set writeFds;
     int maxSock;//highest numbered socket

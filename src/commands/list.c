@@ -2,12 +2,24 @@
 
 #define AUXBUFFERSIZE 512
 #define OUTPUTBUFFERSIZE 2048
-
 #define RECOVERERROR -1
+#define GETNUMBER(n) (n - '0')
+
+
+static int parseMailNumber(char * fileName){
+    int number = 0;
+    for ( int i = 0; fileName[i] >= '0' && fileName[i] <= '9';i++){
+        int digit = GETNUMBER(fileName[i]);
+        number = (number * 10) + digit;
+    }
+    return number;
+}
+
+
 int getUserMails(char * username,user_buffer* outputBuffer){
 
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
-    char output[AUXBUFFERSIZE] = {0};
+    char output[OUTPUTBUFFERSIZE] = {0};
     strcat(auxBuffer,username);
     
     DIR *directoryPtr;
@@ -31,7 +43,6 @@ int getUserMails(char * username,user_buffer* outputBuffer){
 
 
     errno = 0;
-    int mailNumber = 1;
     struct stat fileStat;
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
@@ -45,14 +56,12 @@ int getUserMails(char * username,user_buffer* outputBuffer){
             return RECOVERERROR;
         }
 
-        if ( !S_ISREG(fileStat.st_mode) ){
-            continue;
+        if ( S_ISREG(fileStat.st_mode) ){
+            int mailNumber = parseMailNumber(entry->d_name);
+            off_t fileSize = fileStat.st_size;
+            sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
+            strcat(output,auxBuffer);
         }
-
-        off_t fileSize = fileStat.st_size;
-        sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
-        strcat(output,auxBuffer);
-        mailNumber++;
     }
 
     if ( errno != 0 ){
@@ -60,8 +69,11 @@ int getUserMails(char * username,user_buffer* outputBuffer){
         return RECOVERERROR;
     }
 
+    
+    strcat(output,".\r\n");
     // Close the directory
     closedir(directoryPtr);
 
     return 0;
 }
+
