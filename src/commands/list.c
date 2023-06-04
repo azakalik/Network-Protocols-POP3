@@ -1,24 +1,21 @@
-#include <stdio.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#define PATHBUFFERSIZE 256
+#include "list.h"
 
-#define ERROR -1
+#define AUXBUFFERSIZE 512
+#define OUTPUTBUFFERSIZE 2048
 
-int getUserMails(char * username){
+#define RECOVERERROR -1
+int getUserMails(char * username,user_buffer* outputBuffer){
 
-    char directoryPath[PATHBUFFERSIZE] = "../mails/";
-    strcat(directoryPath,username);
-    
+    char auxBuffer[AUXBUFFERSIZE] = "../mails/";
+    char output[AUXBUFFERSIZE] = {0};
+    strcat(auxBuffer,username);
     
     DIR *directoryPtr;
     struct dirent *entry;
-    directoryPtr = opendir(directoryPath);
+    directoryPtr = opendir(auxBuffer);
     if (directoryPtr == NULL) {
         errno = ENOENT;//error no entry
-        return ERROR;
+        return RECOVERERROR;
     }
 
     /*
@@ -31,18 +28,36 @@ int getUserMails(char * username){
        rno  to zero before calling readdir() and then check the value of errno
        if NULL is returned.
     */
+
+
     errno = 0;
+    int mailNumber = 1;
+    struct stat fileStat;
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
-        if (entry->d_type != DT_REG ) {
+      
+        
+        sprintf(auxBuffer,"../mails/%s/%s",username,entry->d_name);
+        char * filePath = auxBuffer;
+        if ( stat(filePath,&fileStat) < 0){
+            log(ERROR,"error recovering file statitistics for file %s\n",filePath);
+            closedir(directoryPtr);
+            return RECOVERERROR;
+        }
+
+        if ( !S_ISREG(fileStat.st_mode) ){
             continue;
         }
 
+        off_t fileSize = fileStat.st_size;
+        sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
+        strcat(output,auxBuffer);
+        mailNumber++;
     }
 
     if ( errno != 0 ){
         errno = EBADF;//bad file descriptor
-        return ERROR;
+        return RECOVERERROR;
     }
 
     // Close the directory

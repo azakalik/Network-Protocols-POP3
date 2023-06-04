@@ -12,6 +12,7 @@
 #include "../util/util.h"
 #include "popFunctions.h"
 #include "../parsers/commandList.h"
+#include "../commands/list.h"
 
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
@@ -57,7 +58,6 @@ int main(int argc, char ** argv){
     //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
-
 
     fd_set readFds;
     fd_set writeFds;
