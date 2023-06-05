@@ -36,7 +36,6 @@ void writeToClient(user_data * client){
 void handleClientInput(user_data * client){
     char auxiliaryBuffer[MAXLINESIZE+1];
     int bytesRead = recv(client->socket, auxiliaryBuffer, MAXLINESIZE, 0);
-    auxiliaryBuffer[bytesRead] = 0; //null terminate
     
     if ( bytesRead <= 0){
         //client closed connection, that position is released
@@ -47,6 +46,7 @@ void handleClientInput(user_data * client){
         releaseSocketResources(client);
         return;
     }
+    auxiliaryBuffer[bytesRead] = 0; //null terminate
 
     addData(client->command_list, auxiliaryBuffer);
 }

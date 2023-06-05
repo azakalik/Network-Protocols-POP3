@@ -67,6 +67,7 @@ int main(int argc, char ** argv){
     int maxSock;//highest numbered socket
     while (serverRunning)
     {
+        //TODO: pselect??
         // sigset_t mask;
         // sigemptyset(&mask);
         // sigaddset(&mask, SIGINT);
