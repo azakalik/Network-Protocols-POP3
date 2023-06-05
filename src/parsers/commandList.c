@@ -217,8 +217,11 @@ static command_node * addNodeToList(command_list * list){
     command_node * newNode = createNewNode();
     if ( isEmpty(list) ) {
         list->first = newNode;
+        list->last = newNode;
+    } else {
+        list->last->next = newNode;
+        list->last = list->last->next;
     }
-    list->last = newNode;
     return newNode;
 }
 
