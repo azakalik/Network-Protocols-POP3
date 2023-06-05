@@ -41,6 +41,7 @@ void handleClientInput(user_data * client){
         //client closed connection, that position is released
         if ( bytesRead < 0){
             log(ERROR,"Error while doing recv for socket %d",client->socket);
+            return;
         }
         log(INFO, "The client in socket %d sent a EOF. Releasing his resources...", client->socket);
         releaseSocketResources(client);

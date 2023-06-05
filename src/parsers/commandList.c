@@ -94,8 +94,12 @@ static void checkValidCommand(full_command * full_command){
             commandFound = true;
         }
     }
-    if(!commandFound)
-        full_command->commandStatus = INVALID;
+    if(!commandFound){
+        if(full_command->commandStatus == COMPLETE)
+            full_command->commandStatus = COMPLETEINVALID;
+        else
+            full_command->commandStatus = INVALID;
+    }
     return;
    
 }
@@ -204,6 +208,33 @@ static command_node * createNewNode(){
     return newNode;
 }
 
+static bool isEmpty(command_list * list){
+    return list->first == NULL;
+}
+
+//creates a node and adds it to the last position of the list. returns the node created
+static command_node * addNodeToList(command_list * list){
+    command_node * newNode = createNewNode();
+    if ( isEmpty(list) ) {
+        list->first = newNode;
+    }
+    list->last = newNode;
+    return newNode;
+}
+
+static void deleteFirstNode(command_list * list){
+    if(list == NULL || isEmpty(list))
+        return;
+
+    command_node * toDelete = list->first;
+    if (list->first == list->last)
+        list->first = list->last = NULL;
+    else
+        list->first = list->first->next;
+
+    free(toDelete);
+}
+
 //↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ AUXILIARY FUNCTIONS ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 //----------------------------------------------------------------------------------------------
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ MAIN FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
@@ -221,20 +252,13 @@ bool addData(command_list *list, char * data) {
     int charactersProcessed = 0;
     while(data[charactersProcessed] != 0){
         command_node * nodeToProcess;
-        if ( list->first == NULL ) {
-            command_node * newNode = createNewNode(); //todo check NULL
-            list->first = list->last = newNode;
-            nodeToProcess = newNode;
-        } else if ( list->last->data.commandStatus == COMPLETE) {
-            command_node * newNode = createNewNode();
-            list->last->next = newNode;
-            list->last = newNode;
-            nodeToProcess = newNode;
-        } else if (list->last->data.commandStatus == COMPLETEINVALID) {
-            //todo delete this node
+        if ( isEmpty(list) || list->first->data.commandStatus == COMPLETE ) {
+            nodeToProcess = addNodeToList(list);
+        } else if ( list->first->data.commandStatus == COMPLETEINVALID ){
             log(ERROR, "Invalid command");
-        } 
-        else { //last was in WRITING mode
+            deleteFirstNode(list);
+            nodeToProcess = addNodeToList(list);
+        } else { //last was in WRITING mode
             nodeToProcess = list->last;
         }
 
