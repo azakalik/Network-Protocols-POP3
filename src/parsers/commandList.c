@@ -104,6 +104,10 @@ static void checkValidCommand(full_command * full_command){
    
 }
 
+static bool isPrintableCharacter(char c){
+    return c >= '!' && c <= '~';
+}
+
 static int processWriting(full_command * full_command, char * data){
     bool finishedParsing = false;
 
@@ -137,7 +141,7 @@ static int processWriting(full_command * full_command, char * data){
             full_command->commandStatus = INVALID;
             finishedParsing = true;
         }
-        else {
+        else if (isPrintableCharacter(data[i])){
             if (full_command->commandStatus == WRITINGCOMMAND){
                 full_command->command.buffer[idx + i] = data[i];
                 full_command->command.currentBufferIdx += 1;
@@ -149,6 +153,9 @@ static int processWriting(full_command * full_command, char * data){
                 full_command->arg2.buffer[idx + i] = data[i];
                 full_command->arg2.currentBufferIdx += 1;
             }
+        } else {
+            full_command->commandStatus = INVALID;
+            finishedParsing = true;
         }
     }
 
