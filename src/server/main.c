@@ -10,9 +10,9 @@
 #include <errno.h>
 #include <signal.h>
 #include "../util/util.h"
-#include "popFunctions.h"
+#include "../commands/popFunctions.h"
 #include "../parsers/commandList.h"
-#include "../commands/list.h"
+#include "../commands/popFunctions.h"
 
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
@@ -40,7 +40,7 @@ sigterm_handler(const int signal) {
 
 int main(int argc, char ** argv){
     // stdin will not be used
-    // close(STDIN_FILENO); -> TODOOOO
+    //close(STDIN_FILENO);
     //----------------------SOCKET CREATION---------------------------------------
 	if (argc != 2) {
 		log(FATAL, "usage: %s <Server Port>", argv[0]);

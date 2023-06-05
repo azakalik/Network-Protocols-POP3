@@ -43,6 +43,8 @@ typedef enum {
     TOP
 } command_id;
 
+typedef int (*command_handler)(char * arg1, char * arg2);
+
 typedef struct {
     char * commandStr;
     command_id execute_command;

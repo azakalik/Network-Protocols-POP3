@@ -1,9 +1,15 @@
-#include "list.h"
+#include "popFunctions.h"
 
 #define AUXBUFFERSIZE 512
 #define OUTPUTBUFFERSIZE 2048
 #define RECOVERERROR -1
 #define GETNUMBER(n) (n - '0')
+#define GREETINGMESSAGE "+OK Pop3 Server Ready\r\n"
+
+void sendGreeting(user_data * user){
+    char * greetingMessage = GREETINGMESSAGE;
+    writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
+}
 
 
 static int parseMailNumber(char * fileName){
