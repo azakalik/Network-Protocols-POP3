@@ -250,7 +250,7 @@ bool addData(command_list *list, char * data) {
     log(INFO, "New stream received, processing it...");
 
     int charactersProcessed = 0;
-    while(data[charactersProcessed] != 0){
+    while(charactersProcessed != MAXLINESIZE+1 && data[charactersProcessed] != 0){
         command_node * nodeToProcess;
         if ( isEmpty(list) || list->first->data.commandStatus == COMPLETE ) {
             nodeToProcess = addNodeToList(list);
