@@ -14,7 +14,7 @@ int setupTCPServerSocket(const char *service) {
 	// Construct the server address structure
 	struct addrinfo addrCriteria;                   // Criteria for address match
 	memset(&addrCriteria, 0, sizeof(addrCriteria)); // Zero out structure
-	addrCriteria.ai_family = AF_UNSPEC;             // Any address family
+	addrCriteria.ai_family = AF_INET6;             // Any address family
 	addrCriteria.ai_flags = AI_PASSIVE;             // Accept on any address/port
 	addrCriteria.ai_socktype = SOCK_STREAM;         // Only stream sockets
 	addrCriteria.ai_protocol = IPPROTO_TCP;         // Only TCP protocol
@@ -25,6 +25,11 @@ int setupTCPServerSocket(const char *service) {
 		log(FATAL, "getaddrinfo() failed %s", gai_strerror(rtnVal));
 		return -1;
 	}
+
+	///////////////////////////////////////////////////////////// IPv6 
+	// En realiad no es necesario crear dos sockets, lo hacemos como ejercicio, podemos setear las opciones
+	// para que IPv6 acepte ambos (dual stack socket)
+	
 
 	int servSock = -1;
 	// Intentamos ponernos a escuchar en alguno de los puertos asociados al servicio, sin especificar una IP en particular
@@ -39,11 +44,24 @@ int setupTCPServerSocket(const char *service) {
 			continue;       // Socket creation failed; try next address
 		}
 
+
+		///////////////////////////////////////////////////////////// IPv6 
+		// En realiad no es necesario crear dos sockets, lo hacemos como ejercicio, podemos setear las opciones
+		// para que IPv6 acepte ambos (dual stack socket)
+		
 		// Enable the reuse of local address and port
 		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) == -1){
 			log(ERROR, "Error setting socket option: SO_REUSEADDR");
+			exit(1);
 		}
 		
+		int on = 0;
+		if ( setsockopt(servSock, IPPROTO_IPV6, IPV6_V6ONLY, (const void *)&on, sizeof(on)) < 0 ){
+			log(ERROR,"Cant`t set socket option to recieve ipv4 and ipv6 connections")
+			exit(1);
+		}
+		
+
 		// Bind to ALL the address and set socket to listen
 		if ((bind(servSock, addr->ai_addr, addr->ai_addrlen) == 0) && (listen(servSock, MAXPENDING) == 0)) {
 			// Print local address of socket
