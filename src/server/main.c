@@ -111,7 +111,7 @@ static void closeClient(user_data usersData[], int position){
     log(INFO, "Closing client on fd %d and freeing its resources", client.socket);
     destroyList(client.command_list);
     close(client.socket);
-    usersData[position].socket = 0; //to mark it as unoccupied
+    memset(&usersData[position],0,sizeof(user_data)); //to mark it as unoccupied
 }
 
 static void closeAllClients(user_data usersData[]){
