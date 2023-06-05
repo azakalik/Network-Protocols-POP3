@@ -25,7 +25,7 @@ int getUserMails(char * username,user_buffer* outputBuffer){
     DIR *directoryPtr;
     struct dirent *entry;
     directoryPtr = opendir(auxBuffer);
-    if (directoryPtr == NULL) {
+    if (directoryPtr == NULL) {//todo improve
         errno = ENOENT;//error no entry
         return RECOVERERROR;
     }
