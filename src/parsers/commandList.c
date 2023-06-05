@@ -225,15 +225,21 @@ static command_node * addNodeToList(command_list * list){
     return newNode;
 }
 
-static void deleteFirstNode(command_list * list){
+
+static void deleteLastNode(command_list * list){
     if(list == NULL || isEmpty(list))
         return;
 
-    command_node * toDelete = list->first;
+    command_node * toDelete = list->last;
     if (list->first == list->last)
         list->first = list->last = NULL;
-    else
-        list->first = list->first->next;
+    else {
+        command_node * node = list->first;
+        while(node->next->next != NULL){
+            node = node->next;
+        }
+        list->last = node;
+    }
 
     free(toDelete);
 }
@@ -255,11 +261,11 @@ bool addData(command_list *list, char * data) {
     int charactersProcessed = 0;
     while(charactersProcessed != MAXLINESIZE+1 && data[charactersProcessed] != 0){
         command_node * nodeToProcess;
-        if ( isEmpty(list) || list->first->data.commandStatus == COMPLETE ) {
+        if ( isEmpty(list) || list->last->data.commandStatus == COMPLETE ) {
             nodeToProcess = addNodeToList(list);
-        } else if ( list->first->data.commandStatus == COMPLETEINVALID ){
+        } else if ( list->last->data.commandStatus == COMPLETEINVALID ){ //todo delete invalid nodes
             log(ERROR, "Invalid command");
-            deleteFirstNode(list);
+            deleteLastNode(list);
             nodeToProcess = addNodeToList(list);
         } else { //last was in WRITING mode
             nodeToProcess = list->last;
