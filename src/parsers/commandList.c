@@ -2,6 +2,7 @@
 #include <string.h>
 #include "../server/serverFunctions.h"
 #include <stdio.h>
+#include "../commands/popFunctions.h"
 
 /*
 STAT Command ................................................    6
@@ -26,33 +27,17 @@ typedef enum{
 #define VALIDTHREELETTERSCOMMANDSIZE 1
 #define VALIDFOURLETTERSCOMMANDSIZE 9
 #define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
-#define THREELENGTHCOMMAND 3
-#define FOURLENGTHCOMMAND 4
-
-
-typedef enum {
-    USER,
-    PASS,
-    STAT,
-    LIST,
-    RETR,
-    DELE,
-    NOOP,
-    RSET,
-    QUIT,
-    TOP
-} command_id;
 
 typedef int (*command_handler)(char * arg1, char * arg2);
 
 typedef struct {
     char * commandStr;
-    command_id execute_command;
+    command_handler execute_command;
 } valid_command_list;
 
 valid_command_list validCommands[TOTALCOMMANDS] = {
-    {"TOP",TOP},{"USER",USER},{"PASS",PASS},{"STAT",STAT},{"LIST",LIST},{"RETR",RETR},
-    {"DELE",DELE},{"NOOP",NOOP},{"RSET",RSET},{"QUIT",QUIT}
+    {"TOP",emptyFunction},{"USER",emptyFunction},{"PASS",emptyFunction},{"STAT",emptyFunction},{"LIST",emptyFunction},{"RETR",emptyFunction},
+    {"DELE",emptyFunction},{"NOOP",emptyFunction},{"RSET",emptyFunction},{"QUIT",emptyFunction}
 };
 
 
@@ -70,7 +55,7 @@ typedef struct {
     command_buffer command;
     arg_buffer arg1;
     arg_buffer arg2;
-    command_id execute_command;
+    command_handler execute_command;
     command_status commandStatus;
 } full_command;
 

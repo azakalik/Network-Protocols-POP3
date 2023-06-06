@@ -14,5 +14,6 @@
 
 void sendGreeting(user_data * user);
 int getUserMails(char * username,user_buffer *userBuffer);
+int emptyFunction(char * arg1, char * arg2);
 
 #endif
