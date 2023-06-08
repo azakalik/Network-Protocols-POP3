@@ -24,6 +24,8 @@ typedef enum{
     COMPLETEINVALID, //when the command has been totally parsed and it is invalid
 } command_status;
 
+char statusNames[6][16] = {"WRITINGCOMMAND", "WRITINGARG1", "WRITINGARG2", "COMPLETE", "INVALID", "COMPLETEINVALID"};
+
 #define VALIDTHREELETTERSCOMMANDSIZE 1
 #define VALIDFOURLETTERSCOMMANDSIZE 9
 #define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
@@ -57,6 +59,7 @@ typedef struct {
     arg_buffer arg2;
     command_handler execute_command;
     command_status commandStatus;
+    bool receivedCR;
 } full_command;
 
 typedef struct {
@@ -92,7 +95,7 @@ static void checkValidCommand(full_command * full_command){
 }
 
 static bool isPrintableCharacter(char c){
-    return c >= '!' && c <= '~';
+    return c >= ' ' && c <= '~';
 }
 
 static int processWriting(full_command * full_command, char * data){
@@ -117,23 +120,25 @@ static int processWriting(full_command * full_command, char * data){
     for (i = 0; !finishedParsing; i++){
         if (data[i] == 0){
             finishedParsing = true;
+        } else if (full_command->receivedCR){
+            if (data[i] == '\n')
+                full_command->commandStatus = COMPLETE;
+            else
+                full_command->commandStatus = INVALID;
+            finishedParsing = true;
         } else if (data[i] == ' '){
             full_command->commandStatus = status_after_space;
             finishedParsing = true;
-        } else if (data[i] == '\r' && data[i+1] == '\n'){
-            full_command->commandStatus = COMPLETE;
-            finishedParsing = true;
-            i++;
+        } else if (data[i] == '\r'){
+            full_command->receivedCR = true;
         } else if (idx + i >= maxSize){
             full_command->commandStatus = INVALID;
             finishedParsing = true;
-        }
-        else if (isPrintableCharacter(data[i])){
+        } else if (isPrintableCharacter(data[i])){
             if (full_command->commandStatus == WRITINGCOMMAND){
                 full_command->command.buffer[idx + i] = data[i];
                 full_command->command.currentBufferIdx += 1;
-            }
-            else if(full_command->commandStatus == WRITINGARG1){
+            } else if(full_command->commandStatus == WRITINGARG1){
                 full_command->arg1.buffer[idx + i] = data[i];
                 full_command->arg1.currentBufferIdx += 1;
             } else if(full_command->commandStatus == WRITINGARG2){
@@ -156,10 +161,13 @@ static int discardUntilCRLF(full_command * full_command, char * data){
     for (i = 0; !finishedParsing; i++){
         if (data[i] == 0){
             finishedParsing = true;
-        } else if (data[i] == '\r' && data[i+1] == '\n'){ //todo que pasa si llega solo el \r y mas tarde el \n
+        } else if (data[i] == '\r'){
+            full_command->receivedCR = true;
+        } else if (data[i] == '\n' && full_command->receivedCR) {
             full_command->commandStatus = COMPLETEINVALID;
             finishedParsing = true;
-            i++;
+        } else {
+            full_command->receivedCR = false;
         }
     }
 
@@ -189,7 +197,7 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
         charactersProcessed += discardUntilCRLF(&node->data,data+charactersProcessed);
 
     log(INFO, "Status: Command %s, Arg1 %s, Arg2 %s", node->data.command.buffer, node->data.arg1.buffer, node->data.arg2.buffer);
-    log(INFO, "The previous command has status %d", node->data.commandStatus);
+    log(INFO, "The previous command has status %s", statusNames[node->data.commandStatus]);
 
     
 
