@@ -42,6 +42,7 @@ typedef struct {
     pop_state session_state;
     client_state client_state;
     int socket;
+    user_buffer fileBuffer;
 } user_data;
 
 void writeToClient(user_data * client);
