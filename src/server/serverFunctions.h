@@ -36,19 +36,28 @@ typedef enum {
 } pop_state;
 
 
+typedef enum {
+    COMPLETED,
+    PROCESSING,
+} list_state;
+
+typedef struct {
+    int amountSkippedFiles;
+    list_state state;
+} list_state_data;
+
+
+
 typedef struct {
     struct command_list * command_list;
     user_buffer output_buff;
     pop_state session_state;
     client_state client_state;
     int socket;
-<<<<<<< Updated upstream
-    user_buffer fileBuffer;
-=======
     long fileOffset;
     user_buffer fileReadingBuffer;
+    list_state_data listStateData;
     char userName[TEMPBUFFER];
->>>>>>> Stashed changes
 } user_data;
 
 void writeToClient(user_data * client);

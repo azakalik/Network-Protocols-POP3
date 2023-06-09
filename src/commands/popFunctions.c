@@ -1,8 +1,10 @@
 #define AUXBUFFERSIZE 512
-#define OUTPUTBUFFERSIZE 2048
+#define OUTPUTBUFFERSIZE 512
 #define RECOVERERROR -1
 #define GETNUMBER(n) (n - '0')
 #define GREETINGMESSAGE "+OK Pop3 Server Ready\r\n"
+#define WRITE_ERROR -1
+#define WRITE_SUCCESS 0
 
 
 //---------------- LIST ----------------------------
@@ -17,20 +19,10 @@ void sendGreeting(user_data * user){
 }
 
 
-static int parseMailNumber(char * fileName){
-    int number = 0;
-    for ( int i = 0; fileName[i] >= '0' && fileName[i] <= '9';i++){
-        int digit = GETNUMBER(fileName[i]);
-        number = (number * 10) + digit;
-    }
-    return number;
-}
 
-
-int getUserMails(char * username,user_buffer* outputBuffer){
+int getUserMails(char * username, user_data* data){
 
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
-    char output[OUTPUTBUFFERSIZE] = {0};
     strcat(auxBuffer,username);
     
     DIR *directoryPtr;
@@ -52,10 +44,28 @@ int getUserMails(char * username,user_buffer* outputBuffer){
        if NULL is returned.
     */
 
-
     int mailNumber = 1;
-    errno = 0;
     struct stat fileStat;
+
+    //-------- avanzamos el puntero hasta donde se quedo el usuario --> Reconstruir el estado
+    int currentFile;
+    for ( currentFile = 0; currentFile < data->listStateData.amountSkippedFiles; currentFile++ ){
+        entry = readdir(directoryPtr);
+        sprintf(auxBuffer,"../mails/%s/%s",username,entry->d_name);
+        char * filePath = auxBuffer;
+        if ( stat(filePath, &fileStat) < 0){
+            log(ERROR,"ERROR RECOVERING STATISTICS");
+            closedir(directoryPtr);
+            return RECOVERERROR;
+        }
+        if ( S_ISREG(fileStat.st_mode) ){
+            mailNumber++;
+        }
+    }
+
+
+
+    errno = 0;
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
       
@@ -71,23 +81,46 @@ int getUserMails(char * username,user_buffer* outputBuffer){
         if ( S_ISREG(fileStat.st_mode) ){
             off_t fileSize = fileStat.st_size;
             sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
-            strcat(output,auxBuffer);
+            //escribmos de forma mas elaborada al buffer de salida del usuario
+            //si en el buffer de salida no hay espacio --> no escribo la data de ese mail, (tengo q iterar de vuelta hasta encontrar ese mail la proxima vez)
+            if ( writeToOutputBuffer(auxBuffer, data) < 0 ){
+                data->listStateData.amountSkippedFiles = currentFile;
+                data->listStateData.state = PROCESSING;
+                closedir(directoryPtr);
+                return 0;
+            }
             mailNumber += 1;
         }
+
+        currentFile++;
     }
 
     if ( errno != 0 ){
-        errno = EBADF;//bad file descriptor
+        closedir(directoryPtr);
         return RECOVERERROR;
     }
 
-    
-    strcat(output,".\r\n");
-    // Close the directory
-    closedir(directoryPtr);
 
+    if(writeToOutputBuffer("./r/n", data) < 0){
+        data->listStateData.amountSkippedFiles = currentFile;
+        data->listStateData.state = PROCESSING;
+    } else {
+        data->listStateData.state = COMPLETED;
+    }
+    closedir(directoryPtr);
     return 0;
 }
+
+int writeToOutputBuffer(char * buffer, user_data* data ) {
+    int length = strlen(buffer);
+    if(getBufferFreeSpace(&data->output_buff) >= length ){
+        writeDataToBuffer(&data->output_buff, buffer, length);
+        return WRITE_SUCCESS;
+    }
+    
+    return WRITE_ERROR;
+}
+
 
 int emptyFunction(char * arg1, char * arg2){
     log(INFO, "executing empty functions");

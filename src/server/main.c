@@ -63,8 +63,12 @@ int main(int argc, char ** argv){
         usersData[i].socket = NOT_ALLOCATED;
     }
 
-
-    getUserMails("sranucci",NULL);
+    user_data  userData;
+    getUserMails("sranucci", &userData);
+    getUserMails("sranucci", &userData);
+    getUserMails("sranucci", &userData);
+    getUserMails("sranucci", &userData);
+    getUserMails("sranucci", &userData);
 
     //retr("sranucci", "1", NULL );
 
