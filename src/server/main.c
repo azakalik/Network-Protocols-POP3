@@ -17,6 +17,7 @@
 #define FOREVER 1
 #define MAX_CONNECTIONS 500
 #define NOT_INITIALIZED 1
+#define NOT_ALLOCATED -1
 
 static void handleGreeting(user_data * user);
 static void handleClient(fd_set *readFd, fd_set *writeFd, user_data *usersData);
@@ -40,7 +41,7 @@ sigterm_handler(const int signal) {
 
 int main(int argc, char ** argv){
     // stdin will not be used
-    //close(STDIN_FILENO);
+    close(STDIN_FILENO);
     //----------------------SOCKET CREATION---------------------------------------
 	if (argc != 2) {
 		log(FATAL, "usage: %s <Server Port>", argv[0]);
@@ -56,6 +57,9 @@ int main(int argc, char ** argv){
     //-----------------------USER-DATA-INIT---------------------------------
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
+    for (int i = 0; i < MAX_CONNECTIONS; i++){
+        usersData[i].socket = NOT_ALLOCATED;
+    }
 
 
     getUserMails("sranucci",NULL);
@@ -103,13 +107,14 @@ int main(int argc, char ** argv){
 
 static void closeClient(user_data usersData[], int position){
     user_data client = usersData[position];
-    if(client.socket == 0)
+    if(client.socket == NOT_ALLOCATED)
         return;
 
     log(INFO, "Closing client on fd %d and freeing its resources", client.socket);
     destroyList(client.command_list);
     close(client.socket);
     memset(&usersData[position],0,sizeof(user_data)); //to mark it as unoccupied
+    usersData[position].socket = NOT_ALLOCATED;
 }
 
 static void closeAllClients(user_data usersData[]){
@@ -134,6 +139,9 @@ static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData
     log(INFO,"performing a reading/writing operation");
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clntSocket = usersData[i].socket;
+        if (clntSocket == NOT_ALLOCATED)
+            continue;
+
         if ( FD_ISSET(clntSocket,readFds) ){
             handleClientInput(&usersData[i]);
         }
@@ -185,8 +193,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
     bool allocatedClient = false;
     user_data user;
     for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
-        //only passive socket has fd 0
-        if ( connectedUsers[i].socket == 0 ){
+        if ( connectedUsers[i].socket == NOT_ALLOCATED ){
             connectedUsers[i].socket = clntSock;
             connectedUsers[i].session_state = AUTHENTICATION;
             connectedUsers[i].client_state = WRITING;
@@ -219,7 +226,7 @@ static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxN
     int maxFd = *maxNumberFd;
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         int clientSocket = users[i].socket;
-        if ( clientSocket > 0){
+        if ( clientSocket != NOT_ALLOCATED){
             FD_SET(clientSocket,readSet);
             if(!isBufferEmpty(&users[i].output_buff))
                 FD_SET(clientSocket,writeSet);
