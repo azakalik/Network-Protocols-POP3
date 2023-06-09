@@ -3,6 +3,7 @@
 #include "../server/serverFunctions.h"
 #include <stdio.h>
 #include "../commands/popFunctions.h"
+#include "commandList.h"
 
 /*
 STAT Command ................................................    6
@@ -15,7 +16,7 @@ The UPDATE State ............................................   10
 QUIT Command ................................................   10
 */
 
-typedef enum{    
+typedef enum command_status {    
     WRITINGCOMMAND,
     WRITINGARG1,
     WRITINGARG2,
@@ -30,9 +31,8 @@ char statusNames[6][16] = {"WRITINGCOMMAND", "WRITINGARG1", "WRITINGARG2", "COMP
 #define VALIDFOURLETTERSCOMMANDSIZE 9
 #define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
 
-typedef int (*command_handler)(char * arg1, char * arg2);
 
-typedef struct {
+typedef struct valid_command_list {
     char * commandStr;
     command_handler execute_command;
 } valid_command_list;
@@ -43,17 +43,17 @@ valid_command_list validCommands[TOTALCOMMANDS] = {
 };
 
 
-typedef struct {// strings are null terminated
+typedef struct command_buffer {// strings are null terminated
     char buffer[MAXCOMMANDSIZE + 1];
     int currentBufferIdx;
 } command_buffer;
 
-typedef struct {// strings are null terminated
+typedef struct arg_buffer {// strings are null terminated
     char buffer[MAXARGSIZE + 1];
     int currentBufferIdx;
 } arg_buffer;
 
-typedef struct {
+typedef struct full_command {
     command_buffer command;
     arg_buffer arg1;
     arg_buffer arg2;
@@ -62,7 +62,7 @@ typedef struct {
     bool receivedCR;
 } full_command;
 
-typedef struct {
+typedef struct command_list {
     struct command_node *first;
     struct command_node *last;
 } command_list;
@@ -74,7 +74,7 @@ typedef struct command_node {
 
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ AUXILIARY FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
-//returns true on found command and sets command_id apropiately
+//returns true on found command and sets execute_command apropiately
 //todo make more efficient
 static void checkValidCommand(full_command * full_command){
     bool commandFound = false;
@@ -196,6 +196,10 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
     if (node->data.commandStatus == INVALID)
         charactersProcessed += discardUntilCRLF(&node->data,data+charactersProcessed);
 
+    if (node->data.commandStatus == COMPLETEINVALID){
+        log(DEBUG, "arg1 %s %d, arg2 %s %d", node->data.arg1.buffer, node->data.arg1.currentBufferIdx, node->data.arg2.buffer, node->data.arg2.currentBufferIdx);
+    }
+
     log(INFO, "Status: Command %s, Arg1 %s, Arg2 %s", node->data.command.buffer, node->data.arg1.buffer, node->data.arg2.buffer);
     log(INFO, "The previous command has status %s", statusNames[node->data.commandStatus]);
 
@@ -225,6 +229,20 @@ static command_node * addNodeToList(command_list * list){
         list->last = list->last->next;
     }
     return newNode;
+}
+
+static void deleteFirstNode(command_list * list){
+    if(list == NULL || isEmpty(list))
+        return;
+
+    command_node * toDelete = list->first;
+    if (list->first == list->last)
+        list->first = list->last = NULL;
+    else {
+        list->first = list->first->next;
+    }
+
+    free(toDelete);
 }
 
 
@@ -265,7 +283,7 @@ bool addData(command_list *list, char * data) {
         command_node * nodeToProcess;
         if ( isEmpty(list) || list->last->data.commandStatus == COMPLETE ) {
             nodeToProcess = addNodeToList(list);
-        } else if ( list->last->data.commandStatus == COMPLETEINVALID ){ //todo delete invalid nodes
+        } else if ( list->last->data.commandStatus == COMPLETEINVALID ){
             log(ERROR, "Invalid command");
             deleteLastNode(list);
             nodeToProcess = addNodeToList(list);
@@ -279,28 +297,35 @@ bool addData(command_list *list, char * data) {
     return true;
 }
 
-//returns true if there is at least one COMPLETE command to get
+//removes INVALIDCOMPLETE nodes until it finds a COMPLETE node
+//returns true if the remaining first node is COMPLETE
 bool availableCommands(command_list * list){
     if (list == NULL || list->first == NULL)
         return false;
 
-    return list->first->data.commandStatus == COMPLETE;
+    while(!isEmpty(list) && list->first->data.commandStatus == COMPLETEINVALID){
+        deleteFirstNode(list);
+    }
+
+    return isEmpty(list) ? false : list->first->data.commandStatus == COMPLETE;
 }
 
 //returns null if there is no COMPLETE command to return
 //returns the first struct command if there is a COMPLETE one to return. it then removes it from the list
-//the user HAS to free it
-full_command * getFirstCommand(command_list * list){
+//the user HAS to free the node returned
+command_to_execute * getFirstCommand(command_list * list){
     if (!availableCommands(list))
         return NULL;
     
-    full_command * toReturn = (full_command *) list->first;
+    full_command * toTransform = (full_command *) list->first;
 
-    if(list->first == list->last){
-        list->last = list->first = NULL;
-    } else {
-        list->first = list->first->next;
-    }
+    command_to_execute * toReturn = calloc(1, sizeof(command_to_execute));
+    strcpy(toReturn->command, toTransform->command.buffer);
+    strcpy(toReturn->arg1, toTransform->arg1.buffer);
+    strcpy(toReturn->arg2, toTransform->arg2.buffer);
+    toReturn->callback = toTransform->execute_command;
+
+    deleteFirstNode(list);
         
     return toReturn;
 }

@@ -54,8 +54,6 @@ int main(int argc, char ** argv){
     handleProgramTermination();
 
     //-----------------------USER-DATA-INIT---------------------------------
-    //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
-    //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
 
@@ -120,18 +118,34 @@ static void closeAllClients(user_data usersData[]){
     }
 }
 
+static void executeFirstCommand(struct command_list * list, user_buffer * buffer){
+    if(availableCommands(list)){
+        command_to_execute * command = getFirstCommand(list);
+        command->callback(command->arg1, command->arg2);
+        writeDataToBuffer(buffer, "Executing empty function\n", strlen("Executing empty function\n"));
+        free(command);
+    }
+}
+
+//todo limitar el numero de comandos a recibir
+//TODO VER CUANDO SE RECIBE MAS DE UN COMANDO A LA VEZ
 static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
 {
     log(INFO,"performing a reading/writing operation");
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clntSocket = usersData[i].socket;
-        if ( FD_ISSET(clntSocket,readFds)){
+        if ( FD_ISSET(clntSocket,readFds) ){
             handleClientInput(&usersData[i]);
         }
-        if ( FD_ISSET(clntSocket,writeFds)){
+
+        if(isBufferEmpty(&usersData[i].output_buff))
+            executeFirstCommand(usersData[i].command_list, &usersData[i].output_buff);
+
+        if ( FD_ISSET(clntSocket,writeFds) ){
             writeToClient(&usersData[i]);
             handleStates(&usersData[i]);
         }
+        
     }
 }
 

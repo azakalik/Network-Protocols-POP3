@@ -1,14 +1,29 @@
-typedef struct command_list command_list;
-typedef struct full_command full_command;
+#ifndef COMMAND_LIST_H
+#define COMMAND_LIST_H
 
-command_list * createList();
+typedef int (*command_handler)(char * arg1, char * arg2); //pop functions declaration
 
-bool addData(command_list * list, char * data);
+typedef struct {
+    char command[MAXCOMMANDSIZE+1];
+    char arg1[MAXARGSIZE+1];
+    char arg2[MAXARGSIZE+1];
+    command_handler callback;
+} command_to_execute;
 
-bool availableCommands(command_list * list);
+struct full_command;
+struct command_list;
 
-full_command * getFirstCommand(command_list * list);
 
-void freeCommand(command_list * list, full_command * command);
+struct command_list * createList();
 
-void destroyList(command_list * list);
+bool addData(struct command_list * list, char * data);
+
+bool availableCommands(struct command_list * list);
+
+command_to_execute * getFirstCommand(struct command_list * list);
+
+void freeCommand(struct command_list * list, struct full_command * command);
+
+void destroyList(struct command_list * list);
+
+#endif
