@@ -16,7 +16,7 @@ void sendGreeting(user_data * user){
     writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
 }
 
-
+/*
 static int parseMailNumber(char * fileName){
     int number = 0;
     for ( int i = 0; fileName[i] >= '0' && fileName[i] <= '9';i++){
@@ -25,6 +25,7 @@ static int parseMailNumber(char * fileName){
     }
     return number;
 }
+*/
 
 
 int getUserMails(char * username,user_buffer* outputBuffer){

@@ -55,30 +55,17 @@ int main(int argc, char ** argv){
     handleProgramTermination();
 
     //-----------------------USER-DATA-INIT---------------------------------
-    //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
-    //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         usersData[i].socket = NOT_ALLOCATED;
     }
 
-
-    getUserMails("sranucci",NULL);
-
-    //retr("sranucci", "1", NULL );
-
     fd_set readFds;
     fd_set writeFds;
     int maxSock;//highest numbered socket
     while (serverRunning)
     {
-        //TODO: pselect??
-        // sigset_t mask;
-        // sigemptyset(&mask);
-        // sigaddset(&mask, SIGINT);
-        // sigaddset(&mask, SIGTERM);
-
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
@@ -86,13 +73,11 @@ int main(int argc, char ** argv){
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
-        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL, NULL/*, &mask*/);
+        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL, NULL);
         if (selectStatus < 0){
             handleSelectActivityError();
-            //TODO: preguntar a coda como manejar errores
             continue;
         }
-
         
         //we check pasive socket for an incoming connection
         if ( FD_ISSET(servSock,&readFds) ){
@@ -127,6 +112,17 @@ static void closeAllClients(user_data usersData[]){
     }
 }
 
+static void executeFirstCommand(struct command_list * list, user_buffer * buffer){
+    if(availableCommands(list)){
+        command_to_execute * command = getFirstCommand(list);
+        command->callback(command->arg1, command->arg2);
+        writeDataToBuffer(buffer, "Executing empty function\n", strlen("Executing empty function\n"));
+        free(command);
+    }
+}
+
+//todo limitar el numero de comandos a recibir
+//TODO VER CUANDO SE RECIBE MAS DE UN COMANDO A LA VEZ
 static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
 {
     log(INFO,"performing a reading/writing operation");
@@ -135,10 +131,10 @@ static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData
         if (clntSocket == NOT_ALLOCATED)
             continue;
 
-        if ( FD_ISSET(clntSocket,readFds) ){
+        if ( usersData[i].client_state == READING && FD_ISSET(clntSocket,readFds) ){
+            usersData[i].client_state = WRITING;
             handleClientInput(&usersData[i]);
-        }
-        if ( FD_ISSET(clntSocket,writeFds)){
+        } else if ( FD_ISSET(clntSocket,writeFds)){
             writeToClient(&usersData[i]);
             handleStates(&usersData[i]);
         }
@@ -214,11 +210,12 @@ static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxN
     int maxFd = *maxNumberFd;
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         int clientSocket = users[i].socket;
-        if ( clientSocket != NOT_ALLOCATED){
-            FD_SET(clientSocket,readSet);
-            if(!isBufferEmpty(&users[i].output_buff))
-                FD_SET(clientSocket,writeSet);
-        }
+        if (clientSocket == NOT_ALLOCATED)
+            continue;
+
+        FD_SET(clientSocket,readSet);
+        if(!isBufferEmpty(&users[i].output_buff))
+            FD_SET(clientSocket,writeSet);
         if ( clientSocket > maxFd)
             maxFd = clientSocket;
     }

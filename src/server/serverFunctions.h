@@ -20,7 +20,7 @@
 #define TEMPBUFFER 512
 #define MAXCOMMANDSIZE 4 //without null term
 #define MAXARGSIZE 40 //without null term
-#define MAXLINESIZE 2 //with final crlf
+#define MAXLINESIZE 255 //with final crlf
 //max size for the first line of server response (including crlf)
 #define MAXANSWERSIZE 512
 
@@ -42,13 +42,7 @@ typedef struct {
     pop_state session_state;
     client_state client_state;
     int socket;
-<<<<<<< Updated upstream
     user_buffer fileBuffer;
-=======
-    long fileOffset;
-    user_buffer fileReadingBuffer;
-    char userName[TEMPBUFFER];
->>>>>>> Stashed changes
 } user_data;
 
 void writeToClient(user_data * client);
