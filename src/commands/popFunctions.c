@@ -68,8 +68,6 @@ int getUserMails(char * username, user_data* data){
     errno = 0;
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
-      
-        
         sprintf(auxBuffer,"../mails/%s/%s",username,entry->d_name);
         char * filePath = auxBuffer;
         if ( stat(filePath,&fileStat) < 0){
@@ -101,10 +99,11 @@ int getUserMails(char * username, user_data* data){
     }
 
 
-    if(writeToOutputBuffer("./r/n", data) < 0){
+    if(writeToOutputBuffer(".\r\n", data) < 0){
         data->listStateData.amountSkippedFiles = currentFile;
         data->listStateData.state = PROCESSING;
     } else {
+        data->listStateData.amountSkippedFiles = 0;
         data->listStateData.state = COMPLETED;
     }
     closedir(directoryPtr);

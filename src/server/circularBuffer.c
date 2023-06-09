@@ -27,14 +27,13 @@ void writeDataToBuffer(user_buffer *buff, char *src, int len)
 {
     for (int i = 0; i < len; i++)
     {
-        buff->buffer[buff->writePtr] = src[i];
-        buff->writePtr = (buff->writePtr + 1) % BUFFERSIZE;
-        buff->count++;
-
         if (isBufferFull(buff))
         {
             log(FATAL, "Buffer is full, this shouldnt happen");
         }
+        buff->buffer[buff->writePtr] = src[i];
+        buff->writePtr = (buff->writePtr + 1) % BUFFERSIZE;
+        buff->count++;
     }
 }
 
