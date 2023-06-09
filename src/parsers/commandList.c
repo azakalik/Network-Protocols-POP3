@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "../commands/popFunctions.h"
 #include "commandList.h"
+#include "strings.h"
 
 /*
 STAT Command ................................................    6
@@ -79,7 +80,7 @@ typedef struct command_node {
 static void checkValidCommand(full_command * full_command){
     bool commandFound = false;
     for ( int i = 0; !commandFound && i < TOTALCOMMANDS; i++){
-        if ( strcmp(validCommands[i].commandStr, full_command->command.buffer) == 0 ){
+        if ( strcasecmp(validCommands[i].commandStr, full_command->command.buffer) == 0 ){
             full_command->execute_command = validCommands[i].execute_command;
             commandFound = true;
         }
@@ -174,7 +175,6 @@ static int discardUntilCRLF(full_command * full_command, char * data){
     return i;
 }
 
-
 static int processNode(command_node * node, char * data){ //todo que pasa cuando data tiene mas de un comando
     if (data == NULL)
         return 0;
@@ -195,10 +195,6 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
 
     if (node->data.commandStatus == INVALID)
         charactersProcessed += discardUntilCRLF(&node->data,data+charactersProcessed);
-
-    if (node->data.commandStatus == COMPLETEINVALID){
-        log(DEBUG, "arg1 %s %d, arg2 %s %d", node->data.arg1.buffer, node->data.arg1.currentBufferIdx, node->data.arg2.buffer, node->data.arg2.currentBufferIdx);
-    }
 
     log(INFO, "Status: Command %s, Arg1 %s, Arg2 %s", node->data.command.buffer, node->data.arg1.buffer, node->data.arg2.buffer);
     log(INFO, "The previous command has status %s", statusNames[node->data.commandStatus]);
