@@ -1,5 +1,3 @@
-#include "popFunctions.h"
-
 #define AUXBUFFERSIZE 512
 #define OUTPUTBUFFERSIZE 2048
 #define RECOVERERROR -1
@@ -8,6 +6,11 @@
 
 
 //---------------- LIST ----------------------------
+#include "popFunctions.h"
+
+
+//-------------------------LIST FUNCTIONS-----------------------------------------------------------------------
+
 void sendGreeting(user_data * user){
     char * greetingMessage = GREETINGMESSAGE;
     writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
@@ -50,6 +53,7 @@ int getUserMails(char * username,user_buffer* outputBuffer){
     */
 
 
+    int mailNumber = 1;
     errno = 0;
     struct stat fileStat;
     while ((entry = readdir(directoryPtr)) != NULL) {
@@ -65,10 +69,10 @@ int getUserMails(char * username,user_buffer* outputBuffer){
         }
 
         if ( S_ISREG(fileStat.st_mode) ){
-            int mailNumber = parseMailNumber(entry->d_name);
             off_t fileSize = fileStat.st_size;
             sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
             strcat(output,auxBuffer);
+            mailNumber += 1;
         }
     }
 

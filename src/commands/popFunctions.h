@@ -17,4 +17,14 @@ int getUserMails(char * username,user_buffer *userBuffer);
 int emptyFunction(char * arg1, char * arg2);
 int retr(char * username, char * msgNum, user_buffer *userBuffer);
 
+
+typedef enum {
+    READINGFILE,
+    READFIRSTCARRIAGE,
+    READFIRSTNEWLINE,
+    READDOT,
+    READSECONDCARRIAGE,
+    READNEWLINE
+} stuffingStates;
+
 #endif
