@@ -51,4 +51,5 @@ void handleClientInput(user_data * client){
     auxiliaryBuffer[bytesRead] = 0; //null terminate
 
     addData(client->command_list, auxiliaryBuffer);
+    client->client_state = WRITING;
 }

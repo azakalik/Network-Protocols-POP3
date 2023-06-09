@@ -20,7 +20,7 @@
 #define NOT_ALLOCATED -1
 
 static void handleGreeting(user_data * user);
-static void handleClient(fd_set *readFd, fd_set *writeFd, user_data *usersData);
+static void handleClients(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 static void handleSelectActivityError();
@@ -63,7 +63,7 @@ int main(int argc, char ** argv){
 
     fd_set readFds;
     fd_set writeFds;
-    int maxSock;//highest numbered socket
+    int maxSock; //highest numbered socket
     while (serverRunning)
     {
         FD_ZERO(&readFds);
@@ -85,7 +85,7 @@ int main(int argc, char ** argv){
         }
 
         //we handle client`s content
-        handleClient(&readFds,&writeFds,usersData);
+        handleClients(&readFds,&writeFds,usersData);
 
     }
     closeAllClients(usersData);
@@ -123,19 +123,18 @@ static void executeFirstCommand(struct command_list * list, user_buffer * buffer
 
 //todo limitar el numero de comandos a recibir
 //TODO VER CUANDO SE RECIBE MAS DE UN COMANDO A LA VEZ
-static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
+static void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersData)
 {
-    log(INFO,"performing a reading/writing operation");
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clntSocket = usersData[i].socket;
         if (clntSocket == NOT_ALLOCATED)
             continue;
 
-        if ( usersData[i].client_state == READING && FD_ISSET(clntSocket,readFds) ){
-            usersData[i].client_state = WRITING;
+        if ( FD_ISSET(clntSocket,readFds) ){
             handleClientInput(&usersData[i]);
-        } else if ( FD_ISSET(clntSocket,writeFds)){
-            writeToClient(&usersData[i]);
+        } else if ( FD_ISSET(clntSocket,writeFds) ){
+            executeFirstCommand(usersData[i].command_list, &usersData[i].output_buff); //fills the output buffer with the response
+            writeToClient(&usersData[i]); //sends the content of output buffer to the client
             handleStates(&usersData[i]);
         }
     }
@@ -148,6 +147,10 @@ static void handleGreeting(user_data * user){
 
 //TODO: esto podria ser un vector de punteros a funcion por eficiencia. vale la pena?
 static void handleStates(user_data* user){
+    //if there are no more commands to execute and the output buffer is empty, we should be READING from the client (to wait for new commands)
+    if(isBufferEmpty(&user->output_buff) && !availableCommands(user->command_list))
+        user->client_state = READING;
+
     if(user->session_state == AUTHENTICATION){
         // todo
     } else if(user->session_state == TRANSACTION ){
@@ -213,9 +216,11 @@ static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxN
         if (clientSocket == NOT_ALLOCATED)
             continue;
 
-        FD_SET(clientSocket,readSet);
-        if(!isBufferEmpty(&users[i].output_buff))
+        if (users[i].client_state == READING)
+            FD_SET(clientSocket,readSet);
+        else if (users[i].client_state == WRITING)
             FD_SET(clientSocket,writeSet);
+
         if ( clientSocket > maxFd)
             maxFd = clientSocket;
     }

@@ -25,8 +25,8 @@
 #define MAXANSWERSIZE 512
 
 typedef enum {
-    READING,
-    WRITING,
+    READING, //the server is reading from the client
+    WRITING, //the server is writing to the client
 } client_state;
 
 typedef enum {
