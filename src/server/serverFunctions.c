@@ -1,10 +1,12 @@
 #include "serverFunctions.h"
 #include "../parsers/commandParser.h"
+#define NOT_ALLOCATED -1 //todo esto mismo esta declarado en main, buscar una solucion
 
 void releaseSocketResources(user_data * data){
     close(data->socket);
     destroyList(data->command_list);
     memset(data,0,sizeof(user_data));
+    data->socket = NOT_ALLOCATED;
 }
 
 void writeToClient(user_data * client){
@@ -41,7 +43,7 @@ void handleClientInput(user_data * client){
     if ( bytesRead <= 0){
         //client closed connection, that position is released
         if ( bytesRead < 0){
-            log(ERROR,"Error while doing recv for socket %d",client->socket);
+            log(ERROR,"Error while doing recv for socket %d. Errno %d",client->socket, errno);
             return;
         }
         log(INFO, "The client in socket %d sent a EOF. Releasing his resources...", client->socket);
