@@ -99,23 +99,37 @@ static bool isPrintableCharacter(char c){
     return c >= ' ' && c <= '~';
 }
 
+struct auxProcessWriting {
+    command_status status_after_space;
+    int maxSize;
+    char * buffer;
+    int * idx;
+};
+
+static void setupProcessWriting(struct auxProcessWriting * aux, full_command * command){
+    if (command->commandStatus == WRITINGCOMMAND){
+        aux->buffer = command->command.buffer;
+        aux->idx = &command->command.currentBufferIdx;
+        aux->status_after_space = WRITINGARG1;
+        aux->maxSize = MAXCOMMANDSIZE;
+    } else if (command->commandStatus == WRITINGARG1){
+        aux->buffer = command->arg1.buffer;
+        aux->idx = &command->arg1.currentBufferIdx;
+        aux->status_after_space = WRITINGARG2;
+        aux->maxSize = MAXARGSIZE;
+    } else if (command->commandStatus == WRITINGARG2){
+        aux->buffer = command->arg2.buffer;
+        aux->idx = &command->arg2.currentBufferIdx;
+        aux->status_after_space = INVALID;
+        aux->maxSize = MAXARGSIZE;
+    }
+}
+
 static int processWriting(full_command * full_command, char * data){
     bool finishedParsing = false;
+    struct auxProcessWriting aux;
 
-    int idx;
-    command_status status_after_space;
-    int maxSize = MAXARGSIZE;
-    if (full_command->commandStatus == WRITINGCOMMAND){
-        idx = full_command->command.currentBufferIdx;
-        status_after_space = WRITINGARG1;
-        maxSize = MAXCOMMANDSIZE;
-    } else if (full_command->commandStatus == WRITINGARG1){
-        idx = full_command->arg1.currentBufferIdx;
-        status_after_space = WRITINGARG2;
-    } else if (full_command->commandStatus == WRITINGARG2){
-        idx = full_command->arg2.currentBufferIdx;
-        status_after_space = INVALID;
-    }
+    setupProcessWriting(&aux, full_command);
 
     int i;
     for (i = 0; !finishedParsing; i++){
@@ -126,33 +140,24 @@ static int processWriting(full_command * full_command, char * data){
                 full_command->commandStatus = COMPLETE;
             else
                 full_command->commandStatus = INVALID;
-            finishedParsing = true;
         } else if (data[i] == ' '){
-            full_command->commandStatus = status_after_space;
-            finishedParsing = true;
+            full_command->commandStatus = aux.status_after_space;
+            setupProcessWriting(&aux, full_command);
         } else if (data[i] == '\r'){
             full_command->receivedCR = true;
-        } else if (idx + i >= maxSize){
+        } else if (*(aux.idx) >= aux.maxSize){
             full_command->commandStatus = INVALID;
             finishedParsing = true;
         } else if (isPrintableCharacter(data[i])){
-            if (full_command->commandStatus == WRITINGCOMMAND){
-                full_command->command.buffer[idx + i] = data[i];
-                full_command->command.currentBufferIdx += 1;
-            } else if(full_command->commandStatus == WRITINGARG1){
-                full_command->arg1.buffer[idx + i] = data[i];
-                full_command->arg1.currentBufferIdx += 1;
-            } else if(full_command->commandStatus == WRITINGARG2){
-                full_command->arg2.buffer[idx + i] = data[i];
-                full_command->arg2.currentBufferIdx += 1;
-            }
+            aux.buffer[*(aux.idx)] = data[i];
+            *(aux.idx) += 1;
         } else {
             full_command->commandStatus = INVALID;
             finishedParsing = true;
         }
     }
 
-    return i;
+    return i - 1;
 }
 
 static int discardUntilCRLF(full_command * full_command, char * data){
@@ -180,15 +185,8 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
         return 0;
 
     int charactersProcessed = 0;
-    //todo hacer vector de punteros a funcion
-    if (node->data.commandStatus == WRITINGCOMMAND)
+    if (node->data.commandStatus == WRITINGCOMMAND || node->data.commandStatus == WRITINGARG1 || node->data.commandStatus == WRITINGARG2)
         charactersProcessed += processWriting(&node->data,data);
-
-    if (node->data.commandStatus == WRITINGARG1)
-        charactersProcessed += processWriting(&node->data,data+charactersProcessed);
-
-    if (node->data.commandStatus == WRITINGARG2)
-        charactersProcessed += processWriting(&node->data,data+charactersProcessed);
 
     if (node->data.commandStatus == COMPLETE)
         checkValidCommand(&node->data);
@@ -196,9 +194,8 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
     if (node->data.commandStatus == INVALID)
         charactersProcessed += discardUntilCRLF(&node->data,data+charactersProcessed);
 
-    log(INFO, "Status: Command %s, Arg1 %s, Arg2 %s", node->data.command.buffer, node->data.arg1.buffer, node->data.arg2.buffer);
-    log(INFO, "The previous command has status %s", statusNames[node->data.commandStatus]);
-
+    log(INFO, "Status: Command %s, Arg1 %s, Arg2 %s, Status %s", node->data.command.buffer, node->data.arg1.buffer, node->data.arg2.buffer, statusNames[node->data.commandStatus]);
+    log(INFO, "Characters processed: %d", charactersProcessed);
     
 
     return charactersProcessed;
