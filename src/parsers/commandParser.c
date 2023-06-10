@@ -96,6 +96,13 @@ static int processWriting(full_command * full_command, char * data){
                 full_command->commandStatus = COMPLETE;
             else
                 full_command->commandStatus = INVALID;
+
+            //if we don't do this we cause a bug in the return value when th eclient does pipelining
+            //this occurs when the recv receives more than one 'line' (separated by CRLF) before a null termination
+            if(data[i+1] != 0){
+                finishedParsing = true;
+                i++;
+            }
         } else if (data[i] == ' '){
             full_command->commandStatus = aux.status_after_space;
             setupProcessWriting(&aux, full_command);
