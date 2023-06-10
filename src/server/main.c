@@ -35,7 +35,7 @@ static bool serverRunning = true;
 
 static void
 sigterm_handler(const int signal) {
-    log(INFO, "Signal %d, cleaning up and exiting\n",signal);
+    log(INFO, "\nSignal %d, cleaning up and exiting\n",signal);
     serverRunning = false;
 }
 
