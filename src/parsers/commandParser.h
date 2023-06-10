@@ -23,8 +23,6 @@ bool availableCommands(struct command_list * list);
 
 command_to_execute * getFirstCommand(struct command_list * list);
 
-void freeCommand(struct command_list * list, struct full_command * command);
-
 void destroyList(struct command_list * list);
 
 #endif

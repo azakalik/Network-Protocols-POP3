@@ -110,11 +110,19 @@ static void closeAllClients(user_data usersData[]){
     }
 }
 
+//attempts to execute the oldest command sent by a client
 static void executeFirstCommand(struct command_list * list, user_buffer * buffer){
     if(availableCommands(list)){
+        char * message;
         command_to_execute * command = getFirstCommand(list);
-        command->callback(command->arg1, command->arg2);
-        writeDataToBuffer(buffer, "Executing empty function\n", strlen("Executing empty function\n"));
+        if(command->callback != NULL){
+            command->callback(command->arg1, command->arg2);
+            message = "Executing function\n";
+        } else {
+            message = "Invalid command\n";
+        }
+        writeDataToBuffer(buffer, message, strlen(message));
+        
         free(command);
     }
 }

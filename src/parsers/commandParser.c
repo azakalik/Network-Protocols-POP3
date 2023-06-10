@@ -14,7 +14,6 @@ typedef enum command_status {
     INVALID, //when the command is detected as invalid but it isn't totally parsed yet
     COMPLETEINVALID, //when the command has been totally parsed and it is invalid
 } command_status;
-
 char statusNames[][16] = {"WRITINGCOMMAND", "WRITINGARG1", "WRITINGARG2", "COMPLETE", "INVALID", "COMPLETEINVALID"};
 
 typedef struct command_buffer {// strings are null terminated
@@ -27,6 +26,8 @@ typedef struct arg_buffer {// strings are null terminated
     int currentBufferIdx;
 } arg_buffer;
 
+//each full command (like RETR 1\r\n) is represented by one of this
+//incomplete commands (like RET) are also represented by this struct (but have different STATUS than complete ones)
 typedef struct full_command {
     command_buffer command;
     arg_buffer arg1;
@@ -36,6 +37,7 @@ typedef struct full_command {
     bool receivedCR;
 } full_command;
 
+//all of the input received by the client will be stored in a list of full_command
 typedef struct command_list {
     struct command_node *first;
     struct command_node *last;
@@ -78,6 +80,7 @@ static void setupProcessWriting(struct auxProcessWriting * aux, full_command * c
     }
 }
 
+//reads client input until invalid syntax, null termination or CRLF is detected
 static int processWriting(full_command * full_command, char * data){
     bool finishedParsing = false;
     struct auxProcessWriting aux;
@@ -139,6 +142,7 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
 
     int charactersProcessed = 0;
     //if the command or the arguments weren't finished
+    //processWriting has the ability to change the STATUS (for example WRITINGARG1 to COMPLETE)
     if (node->data.commandStatus == WRITINGCOMMAND || node->data.commandStatus == WRITINGARG1 || node->data.commandStatus == WRITINGARG2)
         charactersProcessed += processWriting(&node->data,data);
 
@@ -196,25 +200,6 @@ static void deleteFirstNode(command_list * list){
     free(toDelete);
 }
 
-
-static void deleteLastNode(command_list * list){
-    if(list == NULL || isEmpty(list))
-        return;
-
-    command_node * toDelete = list->last;
-    if (list->first == list->last)
-        list->first = list->last = NULL;
-    else {
-        command_node * node = list->first;
-        while(node->next->next != NULL){
-            node = node->next;
-        }
-        list->last = node;
-    }
-
-    free(toDelete);
-}
-
 //↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ AUXILIARY FUNCTIONS ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 //----------------------------------------------------------------------------------------------
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ MAIN FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
@@ -223,6 +208,7 @@ command_list * createList(){
     return list;
 }
 
+//receives client input as a NULL terminated string and parses it into a list of full_command
 bool addData(command_list *list, char * data) {
     if (list == NULL)
         return false;
@@ -236,7 +222,6 @@ bool addData(command_list *list, char * data) {
             nodeToProcess = addNodeToList(list);
         } else if ( list->last->data.commandStatus == COMPLETEINVALID ){
             log(ERROR, "Invalid command");
-            deleteLastNode(list);
             nodeToProcess = addNodeToList(list);
         } else { //last was in WRITING mode
             nodeToProcess = list->last;
@@ -248,22 +233,17 @@ bool addData(command_list *list, char * data) {
     return true;
 }
 
-//removes INVALIDCOMPLETE nodes until it finds a COMPLETE node
-//returns true if the remaining first node is COMPLETE
+//returns true if the remaining first node is COMPLETE or INVALIDCOMPLETE (if it has been finished parsing whether it is valid or not)
 bool availableCommands(command_list * list){
     if (list == NULL || list->first == NULL)
         return false;
 
-    while(!isEmpty(list) && list->first->data.commandStatus == COMPLETEINVALID){
-        deleteFirstNode(list);
-    }
-
-    return isEmpty(list) ? false : list->first->data.commandStatus == COMPLETE;
+    return isEmpty(list) ? false : list->first->data.commandStatus == COMPLETE || list->first->data.commandStatus == COMPLETEINVALID;
 }
 
-//returns null if there is no COMPLETE command to return
-//returns the first struct command if there is a COMPLETE one to return. it then removes it from the list
-//the user HAS to free the node returned
+//returns null if the list is empty
+//returns the first command in the list (whether valid or not)
+//if the command is invalid, callback == NULL
 command_to_execute * getFirstCommand(command_list * list){
     if (!availableCommands(list))
         return NULL;
@@ -275,14 +255,9 @@ command_to_execute * getFirstCommand(command_list * list){
     strcpy(toReturn->arg1, toTransform->arg1.buffer);
     strcpy(toReturn->arg2, toTransform->arg2.buffer);
     toReturn->callback = toTransform->execute_command;
-
     deleteFirstNode(list);
         
     return toReturn;
-}
-
-void freeCommand(command_list * list, full_command * command){ //todo fijarse si es necesario
-    free( (command_node *) command );
 }
 
 void destroyList(command_list * list) {
