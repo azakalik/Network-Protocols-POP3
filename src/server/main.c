@@ -10,9 +10,7 @@
 #include <errno.h>
 #include <signal.h>
 #include "../util/util.h"
-#include "../commands/popFunctions.h"
-#include "../parsers/commandList.h"
-#include "../commands/popFunctions.h"
+#include "../parsers/commandParser.h"
 
 #define FOREVER 1
 #define MAX_CONNECTIONS 500

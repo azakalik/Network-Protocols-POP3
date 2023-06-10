@@ -60,15 +60,6 @@ int readDataFromBuffer(user_buffer *buff, char *dest, int len)
     return bytesRead;
 }
 
-
-// USER
-
-// RETR 1\r\nLIST\r\nRE
-// vamos a buffer auxiliar --> RETR 1\r\nLIST\r\nRE
-
-
-// LINKED LIST --> struct commandList
-
 typedef enum {
     WRITINGCOMMAND,
     WRITINGARG1,

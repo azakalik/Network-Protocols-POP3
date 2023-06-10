@@ -1,5 +1,5 @@
 #include "serverFunctions.h"
-#include "../parsers/commandList.h"
+#include "../parsers/commandParser.h"
 
 void releaseSocketResources(user_data * data){
     close(data->socket);

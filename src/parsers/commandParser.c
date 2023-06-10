@@ -2,23 +2,12 @@
 #include <string.h>
 #include "../server/serverFunctions.h"
 #include <stdio.h>
-#include "../commands/popFunctions.h"
-#include "commandList.h"
+#include "commandParser.h"
 #include "strings.h"
 
-/*
-STAT Command ................................................    6
-LIST Command ................................................    6
-RETR Command ................................................    8
-DELE Command ................................................    8
-NOOP Command ................................................    9
-RSET Command ................................................    9
-The UPDATE State ............................................   10
-QUIT Command ................................................   10
-*/
 
 typedef enum command_status {    
-    WRITINGCOMMAND,
+    WRITINGCOMMAND, //the command isn't totally written, the next input from the user will be appended to command
     WRITINGARG1,
     WRITINGARG2,
     COMPLETE, //totally parsed complete command (ready to execute)
@@ -26,23 +15,7 @@ typedef enum command_status {
     COMPLETEINVALID, //when the command has been totally parsed and it is invalid
 } command_status;
 
-char statusNames[6][16] = {"WRITINGCOMMAND", "WRITINGARG1", "WRITINGARG2", "COMPLETE", "INVALID", "COMPLETEINVALID"};
-
-#define VALIDTHREELETTERSCOMMANDSIZE 1
-#define VALIDFOURLETTERSCOMMANDSIZE 9
-#define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
-
-
-typedef struct valid_command_list {
-    char * commandStr;
-    command_handler execute_command;
-} valid_command_list;
-
-valid_command_list validCommands[TOTALCOMMANDS] = {
-    {"TOP",emptyFunction},{"USER",emptyFunction},{"PASS",emptyFunction},{"STAT",emptyFunction},{"LIST",emptyFunction},{"RETR",emptyFunction},
-    {"DELE",emptyFunction},{"NOOP",emptyFunction},{"RSET",emptyFunction},{"QUIT",emptyFunction}
-};
-
+char statusNames[][16] = {"WRITINGCOMMAND", "WRITINGARG1", "WRITINGARG2", "COMPLETE", "INVALID", "COMPLETEINVALID"};
 
 typedef struct command_buffer {// strings are null terminated
     char buffer[MAXCOMMANDSIZE + 1];
@@ -74,26 +47,6 @@ typedef struct command_node {
 } command_node;
 
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ AUXILIARY FUNCTIONS ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-
-//returns true on found command and sets execute_command apropiately
-//todo make more efficient
-static void checkValidCommand(full_command * full_command){
-    bool commandFound = false;
-    for ( int i = 0; !commandFound && i < TOTALCOMMANDS; i++){
-        if ( strcasecmp(validCommands[i].commandStr, full_command->command.buffer) == 0 ){
-            full_command->execute_command = validCommands[i].execute_command;
-            commandFound = true;
-        }
-    }
-    if(!commandFound){
-        if(full_command->commandStatus == COMPLETE)
-            full_command->commandStatus = COMPLETEINVALID;
-        else
-            full_command->commandStatus = INVALID;
-    }
-    return;
-   
-}
 
 static bool isPrintableCharacter(char c){
     return c >= ' ' && c <= '~';
@@ -185,18 +138,23 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
         return 0;
 
     int charactersProcessed = 0;
+    //if the command or the arguments weren't finished
     if (node->data.commandStatus == WRITINGCOMMAND || node->data.commandStatus == WRITINGARG1 || node->data.commandStatus == WRITINGARG2)
         charactersProcessed += processWriting(&node->data,data);
 
-    if (node->data.commandStatus == COMPLETE)
-        checkValidCommand(&node->data);
-
-    if (node->data.commandStatus == INVALID)
+    //if an entire command has been parsed completely
+    if (node->data.commandStatus == COMPLETE){
+        command_handler command;
+        if((command = getCommand(node->data.command.buffer)) != NULL){
+            node->data.execute_command = command;
+        } else {
+            node->data.commandStatus = COMPLETEINVALID;
+        }
+    } else if (node->data.commandStatus == INVALID){ //when you know the command is invalid but haven't reached CRLF yet
         charactersProcessed += discardUntilCRLF(&node->data,data+charactersProcessed);
+    }
 
     log(INFO, "Status: Command %s, Arg1 %s, Arg2 %s, Status %s", node->data.command.buffer, node->data.arg1.buffer, node->data.arg2.buffer, statusNames[node->data.commandStatus]);
-    log(INFO, "Characters processed: %d", charactersProcessed);
-    
 
     return charactersProcessed;
 }
