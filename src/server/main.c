@@ -63,7 +63,6 @@ int main(int argc, char ** argv){
         usersData[i].socket = NOT_ALLOCATED;
     }
 
-    //retr("sranucci", "1", NULL );
 
     fd_set readFds;
     fd_set writeFds;

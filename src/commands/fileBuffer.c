@@ -50,7 +50,6 @@ int readFromBuffer(file_buffer * buffer){
 
     int c = buffer->auxBuffer[buffer->currentPos];
 
-    char character= (char) c;
 
     if ( buffer->state == INMEDIATERETURNCARRIAGE){
         buffer->state = INMEDIATERETURNNEWLINE;

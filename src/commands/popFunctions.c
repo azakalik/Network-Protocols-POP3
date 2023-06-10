@@ -161,30 +161,70 @@ static int startReadingMail(user_data * data, int msgNum){
     data->retrStateData.state = PROCESSING;
     char auxBuffer[AUXBUFFERSIZE];
     return 0;
-    
+}
+
+
+static void findFileData(char * buffer, long * fileSize, int msgNum, char * userName){
+    char dirPath[AUXBUFFERSIZE];
+    char auxBuffer[AUXBUFFERSIZE];
+    sprintf(dirPath, "../mails/%s", userName);
+    DIR * directoryPtr;
+    struct dirent *entry;
+    directoryPtr = opendir(dirPath);
+
+    if (directoryPtr == NULL) {
+        log(ERROR,"Error opening dir: %s", dirPath);
+        return RECOVERERROR;
+    }
+
+    int count=1;
+    struct stat fileStat;
+    while ((entry = readdir(directoryPtr)) != NULL) {
+
+        sprintf(auxBuffer,"%s/%s",dirPath,entry->d_name);
+        char * filePath = auxBuffer;
+        if ( stat(filePath,&fileStat) < 0){
+            log(ERROR,"error recovering file statitistics for file %s\n",filePath);
+            closedir(directoryPtr);
+            return RECOVERERROR;
+        }
+        if ( S_ISREG(fileStat.st_mode) ){
+            if(count == msgNum){
+                *fileSize = fileStat.st_size;
+                strcpy(buffer, filePath);
+                closedir(directoryPtr);
+                return;
+            }
+            count++;
+        }
+
+    }
+
+
 }
 
 int retr(char * username, char * msgNum, user_data * data){
     char auxBuff[AUXBUFFERSIZE];
-    obtainFilePath(username,msgNum,auxBuff);
-    FILE * file = openFile(auxBuff, data);
 
-
+    /*
+    off_t fileSize = fileStat.st_size;
     struct stat fileStat;
     if ( stat(auxBuff, &fileStat) < 0){
         log(ERROR,"ERROR RECOVERING STATISTICS");
         fclose(file);
         return RECOVERERROR;
     }
-
-    if(!S_ISREG(fileStat.st_mode)){
-        log(ERROR,"Error, file is not regular"); //es un error?
-        fclose(file);
-        return -1;
-    }
-
-    off_t fileSize = fileStat.st_size;
+    
     sprintf(auxBuff,"+OK %lld octets\r\n", (long long)fileSize);
+    */
+    
+    findFileName(auxBuff,atoi(msgNum),data->userName);
+    obtainFilePath(username,msgNum,auxBuff);
+    
+    
+
+    FILE * file = openFile(auxBuff, data);
+
     //ver si hay espacio en el buffer de salida y mandar la rta
     if ( writeToOutputBuffer(auxBuff, data) < 0 ){
         data->retrStateData.state = PROCESSING;
@@ -194,10 +234,5 @@ int retr(char * username, char * msgNum, user_data * data){
     }
     
     int avaiableSpace = getBufferOccupiedSpace(&data->output_buff);
-
-
-    //size_t bytesRead = fread()
-
-    //leemos del archivo
     
 }
