@@ -6,7 +6,7 @@
 
 
 void initializeBuffer(file_buffer * buffer){
-    memset(buffer,0,sizeof(buffer));
+    memset(buffer,0,sizeof(file_buffer));
 }
 
 
@@ -22,7 +22,7 @@ void rebaseBuffer(file_buffer * buffer){
     buffer->len = bytesToMove;
 }
 
-
+    
 // hfoadsfadfadsfadfasdfasd\r\n.\r\n
 
 
@@ -35,7 +35,9 @@ void * getBufferPtr(file_buffer * buffer, int * SpaceAvailable){
     return buffer->auxBuffer + buffer->len;
 }
 
-
+void setLength(file_buffer* buffer, int length){
+    buffer->len += length;
+}
 //returns amout of bytes read from buffer
 int readFromBuffer(file_buffer * buffer){
     //read but with state machine, EOF was not reached
@@ -47,6 +49,8 @@ int readFromBuffer(file_buffer * buffer){
     
 
     int c = buffer->auxBuffer[buffer->currentPos];
+
+    char character= (char) c;
 
     if ( buffer->state == INMEDIATERETURNCARRIAGE){
         buffer->state = INMEDIATERETURNNEWLINE;
@@ -81,8 +85,8 @@ int readFromBuffer(file_buffer * buffer){
         } else {
             if ( c == '\r'){
                 buffer->state = READSECONDCARRIAGE;
-                buffer->currentPos++;
                 rebaseBuffer(buffer);
+                buffer->currentPos++;
                 return NEEDMOREPROCESSINFO;
             }
 

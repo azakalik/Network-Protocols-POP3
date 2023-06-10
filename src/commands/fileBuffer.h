@@ -34,5 +34,8 @@ void initializeBuffer(file_buffer * buffer);
 void rebaseBuffer(file_buffer * buffer);
 
 int readFromBuffer(file_buffer * buffer);
+void setLength(file_buffer* buffer, int length);
+
+void * getBufferPtr(file_buffer * buffer, int * SpaceAvailable);
 
 #endif

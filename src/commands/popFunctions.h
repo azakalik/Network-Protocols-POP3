@@ -23,13 +23,5 @@ int writeToOutputBuffer(char * buffer, user_data* data );
 int emptyFunction(char * arg1, char * arg2);
 int retr(char * username, char * msgNum, user_data* data);
 
-typedef enum {
-    READINGFILE,
-    READFIRSTCARRIAGE,
-    READFIRSTNEWLINE,
-    READDOT,
-    READSECONDCARRIAGE,
-    READNEWLINE
-} stuffingStates;
 
 #endif

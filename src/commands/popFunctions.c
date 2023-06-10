@@ -136,7 +136,7 @@ int emptyFunction(char * arg1, char * arg2){
 //---------------- RETR ----------------------------
 
 static void obtainFilePath(char * username, char * mailNumber, char * dest){
-    sprintf(dest,"../mails/%s/%d",username,mailNumber);
+    sprintf(dest,"../mails/%s/%s",username,mailNumber);
 
 }
 
@@ -160,6 +160,7 @@ static FILE * openFile(char * path, user_data * data){
 static int startReadingMail(user_data * data, int msgNum){
     data->retrStateData.state = PROCESSING;
     char auxBuffer[AUXBUFFERSIZE];
+    return 0;
     
 }
 
@@ -195,7 +196,7 @@ int retr(char * username, char * msgNum, user_data * data){
     int avaiableSpace = getBufferOccupiedSpace(&data->output_buff);
 
 
-    size_t bytesRead = fread()
+    //size_t bytesRead = fread()
 
     //leemos del archivo
     
