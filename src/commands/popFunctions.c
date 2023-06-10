@@ -7,6 +7,7 @@
 #define WRITE_SUCCESS 0
 
 
+
 //---------------- LIST ----------------------------
 #include "popFunctions.h"
 
@@ -132,61 +133,70 @@ int emptyFunction(char * arg1, char * arg2){
 //              S: <the POP3 server sends the entire message here>
 //              S: .
 
-
 //---------------- RETR ----------------------------
-int retr(char * username, char * msgNum, user_buffer *userBuffer){
 
-    char auxBuffer[AUXBUFFERSIZE] = "../mails/";
-    char output[OUTPUTBUFFERSIZE] = {0};
-    //todo: validate msgNum
-    sprintf(auxBuffer,"../mails/%s/%s", username, msgNum);
-    char * filePath = auxBuffer;
+static void obtainFilePath(char * username, char * mailNumber, char * dest){
+    sprintf(dest,"../mails/%s/%d",username,mailNumber);
+
+}
 
 
-    FILE * file = fopen(filePath, "r");
-    if (file == NULL) {
-        log(ERROR,"error opening file %s\n",filePath);
-        return RECOVERERROR;
+static FILE * openFile(char * path, user_data * data){
+    FILE * file = fopen(path, "r");
+    if(file == NULL){
+        log(FATAL,"Error opening file: %s", path);
     }
+    if(data->retrStateData.state == START)
+        return file;
+    //si el usuario ya estaba leyendo
+    if ( fseek(file,data->retrStateData.offset,SEEK_SET) < 0 ){
+        fclose(file);
+        log(FATAL,"Error advancing to desired position in file: %s", path);
+    }
+
+    return file;
+}
+
+static int startReadingMail(user_data * data, int msgNum){
+    data->retrStateData.state = PROCESSING;
+    char auxBuffer[AUXBUFFERSIZE];
+    
+}
+
+int retr(char * username, char * msgNum, user_data * data){
+    char auxBuff[AUXBUFFERSIZE];
+    obtainFilePath(username,msgNum,auxBuff);
+    FILE * file = openFile(auxBuff, data);
 
 
     struct stat fileStat;
-    if ( stat(filePath, &fileStat) < 0){
-            log(ERROR,"error recovering file statitistics for file %s\n",filePath);
-            fclose(file);
-            return RECOVERERROR;
-        }
+    if ( stat(auxBuff, &fileStat) < 0){
+        log(ERROR,"ERROR RECOVERING STATISTICS");
+        fclose(file);
+        return RECOVERERROR;
+    }
+
+    if(!S_ISREG(fileStat.st_mode)){
+        log(ERROR,"Error, file is not regular"); //es un error?
+        fclose(file);
+        return -1;
+    }
+
+    off_t fileSize = fileStat.st_size;
+    sprintf(auxBuff,"+OK %lld octets\r\n", (long long)fileSize);
+    //ver si hay espacio en el buffer de salida y mandar la rta
+    if ( writeToOutputBuffer(auxBuff, data) < 0 ){
+        data->retrStateData.state = PROCESSING;
+        data->retrStateData.offset = 0; //es 0 ?
+        fclose(file);
+        return 0;
+    }
     
-    if ( S_ISREG(fileStat.st_mode) ){
-            off_t fileSize = fileStat.st_size;
-            sprintf(auxBuffer,"+OK %lld octets \r\n",(long long)fileSize);
-            strcat(output,auxBuffer);
+    int avaiableSpace = getBufferOccupiedSpace(&data->output_buff);
 
-            //podria usar filesize en vez de outputbuffersize??
-        
 
-             fread(output, sizeof(char), OUTPUTBUFFERSIZE, file);
+    size_t bytesRead = fread()
 
-//fileSize = 14
-//bufferdelectura 5
-//5 - 5 - 4
-
-            //todo: validation
-
-            //paso1: buffer de lectura
-            //paso2: find replace: \r\n.\r\n --> \r\n..\r\n (puede ser q en el primer buffer tenga r\n. y en otro r\n )
-            //paso3: copio el buffer de lectura en el userbuffer (salida)
-
-            strcat(output,".\r\n");
-
-            //copiar output en userBuffer ??
-            writeDataToBuffer(userBuffer, output, strlen(output));
-            //getBufferFreeSpace
-            // escribo lo q puedo
-            //si no hay espacio en userBuffer --> 
-        }
+    //leemos del archivo
     
-    fclose(file);
-    return 0;
-
 }

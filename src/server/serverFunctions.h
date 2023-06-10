@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <unistd.h>
 
 #define TEMPBUFFER 512
 #define MAXCOMMANDSIZE 4 //without null term
@@ -36,16 +37,24 @@ typedef enum {
 } pop_state;
 
 
+
+
+
 typedef enum {
+    START,
     COMPLETED,
     PROCESSING,
-} list_state;
+} processing_state;
 
 typedef struct {
     int amountSkippedFiles;
-    list_state state;
+    processing_state state;
 } list_state_data;
 
+typedef struct {
+    long offset;
+    processing_state state;
+} retr_state_data;
 
 
 typedef struct {
@@ -57,6 +66,7 @@ typedef struct {
     long fileOffset;
     user_buffer fileReadingBuffer;
     list_state_data listStateData;
+    retr_state_data retrStateData;
     char userName[TEMPBUFFER];
 } user_data;
 
