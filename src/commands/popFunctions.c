@@ -8,7 +8,7 @@
 //---------------- LIST ----------------------------
 #include "popFunctions.h"
 #include "strings.h"
-valid_command_list validCommands[TOTALCOMMANDS] = {
+command_with_state validCommands[TOTALCOMMANDS] = {
     {"TOP",  emptyFunction, TRANSACTION},
     {"USER", emptyFunction, AUTHENTICATION},
     {"PASS", emptyFunction, AUTHENTICATION},
@@ -24,10 +24,10 @@ valid_command_list validCommands[TOTALCOMMANDS] = {
 
 //returns NULL if command not found or pointer to POP command if exists
 //todo make more efficient
-command_handler getCommand(char * command_name){
+command_with_state * getCommand(char * command_name){
     for ( int i = 0; i < TOTALCOMMANDS; i++){
         if ( strcasecmp(validCommands[i].commandStr, command_name) == 0 ){
-            return validCommands[i].execute_command;
+            return &validCommands[i];
         }
     }
     return NULL;

@@ -32,7 +32,7 @@ typedef struct full_command {
     command_buffer command;
     arg_buffer arg1;
     arg_buffer arg2;
-    command_handler execute_command;
+    command_with_state execute_command;
     command_status commandStatus;
     bool receivedCR;
 } full_command;
@@ -155,9 +155,9 @@ static int processNode(command_node * node, char * data){ //todo que pasa cuando
 
     //if an entire command has been parsed completely
     if (node->data.commandStatus == COMPLETE){
-        command_handler command;
+        command_with_state * command;
         if((command = getCommand(node->data.command.buffer)) != NULL){
-            node->data.execute_command = command;
+            node->data.execute_command = *command;
         } else {
             node->data.commandStatus = COMPLETEINVALID;
         }

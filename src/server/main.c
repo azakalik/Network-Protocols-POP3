@@ -20,7 +20,6 @@ static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 static void handleSelectActivityError();
 static void handleProgramTermination();
-static void handleStates(user_data* user);
 static void closeClient(user_data usersData[], int position);
 static void closeAllClients(user_data usersData[]);
 
@@ -108,13 +107,18 @@ static void closeAllClients(user_data usersData[]){
 }
 
 //attempts to execute the oldest command sent by a client
-static void executeFirstCommand(struct command_list * list, user_buffer * buffer){
+static void executeFirstCommand(struct command_list * list, user_buffer * buffer, pop_state user_status){
     if(availableCommands(list)){
         char * message;
         command_to_execute * command = getFirstCommand(list);
-        if(command->callback != NULL){
-            command->callback(command->arg1, command->arg2);
-            message = "+OK Executing function\n";
+        if(command->callback.execute_command != NULL){
+            if (user_status == command->callback.pop_state){
+                command->callback.execute_command(command->arg1, command->arg2);
+                message = "+OK Executing function\n";
+            } else {
+                message = "-ERR Invalid state\n";
+            }
+                
         } else {
             message = "-ERR Invalid command\n";
         }
@@ -136,28 +140,11 @@ static void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersDat
         if ( FD_ISSET(clntSocket,readFds) ){
             handleClientInput(&usersData[i]);
         } else if ( FD_ISSET(clntSocket,writeFds) ){
-            executeFirstCommand(usersData[i].command_list, &usersData[i].output_buff); //fills the output buffer with the response
+            executeFirstCommand(usersData[i].command_list, &usersData[i].output_buff, usersData[i].session_state); //fills the output buffer with the response
             writeToClient(&usersData[i]); //sends the content of output buffer to the client
-            handleStates(&usersData[i]);
         }
     }
 }
-
-//TODO: esto podria ser un vector de punteros a funcion por eficiencia. vale la pena?
-static void handleStates(user_data* user){
-    //if there are no more commands to execute and the output buffer is empty, we should be READING from the client (to wait for new commands)
-    if(isBufferEmpty(&user->output_buff) && !availableCommands(user->command_list))
-        user->client_state = READING;
-
-    if(user->session_state == AUTHENTICATION){
-        // todo
-    } else if(user->session_state == TRANSACTION ){
-        // todo
-    } else { //session_state == UPDATE
-        //todo 
-    }
-}
-
 
 static void acceptConnection(user_data* connectedUsers,int servSock){
 

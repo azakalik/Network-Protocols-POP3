@@ -14,17 +14,17 @@
 
 typedef int (*command_handler)(char * arg1, char * arg2); //pop functions declaration
 
-typedef struct valid_command_list {
+typedef struct command_with_state {
     char * commandStr;
     command_handler execute_command;
     pop_state pop_state; //pop state needed to execute this command
-} valid_command_list;
+} command_with_state;
 
 #define VALIDTHREELETTERSCOMMANDSIZE 1
 #define VALIDFOURLETTERSCOMMANDSIZE 9
 #define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
 
-command_handler getCommand(char * command_name);
+command_with_state * getCommand(char * command_name);
 void sendGreeting(user_data * user);
 int getUserMails(char * username,user_buffer *userBuffer);
 int emptyFunction(char * arg1, char * arg2);

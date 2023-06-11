@@ -11,26 +11,26 @@ void releaseSocketResources(user_data * data){
 
 void writeToClient(user_data * client){
     int toWrite = getBufferOccupiedSpace(&client->output_buff);
-    if(toWrite==0)
-        return;
-    char auxiliaryBuffer[toWrite];
-    
-    readDataFromBuffer(&client->output_buff, auxiliaryBuffer, toWrite);
-    int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, 0); //TODO: add flags
-    if ( bytesSent < 0 ){
-        log(ERROR,"Could not send data to buffer %d",client->socket);
-        releaseSocketResources(client);
-        return;
-    } 
-    
-
-    if (bytesSent < toWrite){
-        int bytesToWriteBack = toWrite - bytesSent;
-        char * notSendPosition = auxiliaryBuffer + bytesSent; 
-        writeDataToBuffer(&client->output_buff, notSendPosition , bytesToWriteBack );
-        return;
+    if(toWrite!=0){
+        char auxiliaryBuffer[toWrite];
+        
+        readDataFromBuffer(&client->output_buff, auxiliaryBuffer, toWrite);
+        int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, 0); //TODO: add flags
+        if ( bytesSent < 0 ){
+            log(ERROR,"Could not send data to buffer %d",client->socket);
+            releaseSocketResources(client);
+            return;
+        } 
+        
+        if (bytesSent < toWrite){
+            int bytesToWriteBack = toWrite - bytesSent;
+            char * notSendPosition = auxiliaryBuffer + bytesSent; 
+            writeDataToBuffer(&client->output_buff, notSendPosition , bytesToWriteBack );
+        }
     }
 
+    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list))
+        client->client_state = READING;
 
     return;
 }

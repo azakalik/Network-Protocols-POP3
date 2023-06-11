@@ -7,7 +7,7 @@ typedef struct { //struct used to execute already commands
     char command[MAXCOMMANDSIZE+1];
     char arg1[MAXARGSIZE+1];
     char arg2[MAXARGSIZE+1];
-    command_handler callback;
+    command_with_state callback;
 } command_to_execute;
 
 //these are declared in commandParser.c
