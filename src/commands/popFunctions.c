@@ -9,8 +9,16 @@
 #include "popFunctions.h"
 #include "strings.h"
 valid_command_list validCommands[TOTALCOMMANDS] = {
-    {"TOP",emptyFunction},{"USER",emptyFunction},{"PASS",emptyFunction},{"STAT",emptyFunction},{"LIST",emptyFunction},{"RETR",emptyFunction},
-    {"DELE",emptyFunction},{"NOOP",emptyFunction},{"RSET",emptyFunction},{"QUIT",emptyFunction}
+    {"TOP",  emptyFunction, TRANSACTION},
+    {"USER", emptyFunction, AUTHENTICATION},
+    {"PASS", emptyFunction, AUTHENTICATION},
+    {"STAT", emptyFunction, TRANSACTION},
+    {"LIST", emptyFunction, TRANSACTION},
+    {"RETR", emptyFunction, TRANSACTION},
+    {"DELE", emptyFunction, TRANSACTION},
+    {"NOOP", emptyFunction, TRANSACTION},
+    {"RSET", emptyFunction, TRANSACTION},
+    {"QUIT", emptyFunction, UPDATE}
 };
 
 

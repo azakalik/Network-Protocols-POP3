@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include "../commands/popStates.h"
 
 #define TEMPBUFFER 512
 #define MAXCOMMANDSIZE 4 //without null term
