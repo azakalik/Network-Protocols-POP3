@@ -29,13 +29,6 @@ typedef enum {
     WRITING, //the server is writing to the client
 } client_state;
 
-typedef enum {
-    AUTHENTICATION,
-    TRANSACTION,
-    UPDATE,
-} pop_state;
-
-
 typedef struct {
     struct command_list * command_list;
     user_buffer output_buff;

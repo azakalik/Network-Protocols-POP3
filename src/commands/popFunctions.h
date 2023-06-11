@@ -29,6 +29,12 @@ int emptyFunction(char * arg1, char * arg2);
 int retr(char * username, char * msgNum, user_buffer *userBuffer);
 
 typedef enum {
+    AUTHENTICATION,
+    TRANSACTION,
+    UPDATE,
+} pop_state;
+
+typedef enum {
     READINGFILE,
     READFIRSTCARRIAGE,
     READFIRSTNEWLINE,

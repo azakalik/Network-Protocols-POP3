@@ -255,13 +255,13 @@ command_to_execute * getFirstCommand(command_list * list){
     if (!availableCommands(list))
         return NULL;
     
-    full_command * toTransform = (full_command *) list->first;
+    full_command * node = (full_command *) list->first;
 
     command_to_execute * toReturn = calloc(1, sizeof(command_to_execute));
-    strcpy(toReturn->command, toTransform->command.buffer);
-    strcpy(toReturn->arg1, toTransform->arg1.buffer);
-    strcpy(toReturn->arg2, toTransform->arg2.buffer);
-    toReturn->callback = toTransform->execute_command;
+    strcpy(toReturn->command, node->command.buffer);
+    strcpy(toReturn->arg1, node->arg1.buffer);
+    strcpy(toReturn->arg2, node->arg2.buffer);
+    toReturn->callback = node->execute_command;
     deleteFirstNode(list);
         
     return toReturn;
