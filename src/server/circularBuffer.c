@@ -33,7 +33,7 @@ void writeDataToBuffer(user_buffer *buff, char *src, int len)
 
         if (isBufferFull(buff))
         {
-            log(FATAL, "Buffer is full, this shouldnt happen");
+            log(FATAL, "%s", "Buffer is full, this shouldnt happen");
         }
     }
 }

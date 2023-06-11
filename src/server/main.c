@@ -158,7 +158,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
 
 	if (clntSock < 0) {
-		log(ERROR, "accept() failed");
+		log(ERROR, "%s", "accept() failed");
 		exit(ACCEPT_FAILURE);
 	}
 
@@ -177,11 +177,11 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
     }
 
     if ( !allocatedClient ){
-        log(ERROR,"Could not allocate client who requested to connect, users structure is full");
+        log(ERROR,"%s", "Could not allocate client who requested to connect, users structure is full");
         close(clntSock);
         exit(EXIT_FAILURE); //todo dont exit!
     } else if (user.command_list == NULL){
-        log(ERROR,"Could not allocate memory for a command list in a new connection");
+        log(ERROR,"%s", "Could not allocate memory for a command list in a new connection");
         close(clntSock);
         exit(EXIT_FAILURE);
     }
@@ -217,18 +217,18 @@ static void handleSelectActivityError(){
     switch (errno)
     {
     case EBADF:
-        log(ERROR,"One or more fd in the set are not valid\n");
+        log(ERROR,"%s", "One or more fd in the set are not valid\n");
         break;
     case EINTR:
-        log(INFO,"The select was interrupted by a signal before any request event occured\n");
+        log(INFO,"%s", "The select was interrupted by a signal before any request event occured\n");
         break;
     case EINVAL:
-        log(ERROR,"The highest fd + 1 is negative or exeeds system limit\n");
+        log(ERROR,"%s", "The highest fd + 1 is negative or exeeds system limit\n");
         break;
     case ENOMEM:
-        log(ERROR,"not enough memory to allocate required data for structures on select\n");
+        log(ERROR,"%s", "not enough memory to allocate required data for structures on select\n");
     default:
-        log(ERROR,"unexpected error when handling select activity\n");
+        log(ERROR,"%s", "unexpected error when handling select activity\n");
         break;
     }
 }
@@ -243,11 +243,11 @@ static void handleProgramTermination(){
     sa.sa_flags = 0;
 
     if (sigaction(SIGTERM, &sa, NULL) == -1) {
-        log(FATAL, "sigaction(SIGTERM) failed");
+        log(FATAL, "%s", "sigaction(SIGTERM) failed");
     }
 
     if (sigaction(SIGINT, &sa, NULL) == -1) {
-        log(FATAL, "sigaction(SIGINT) failed");
+        log(FATAL, "%s", "sigaction(SIGINT) failed");
     }
 }
 

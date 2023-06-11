@@ -220,7 +220,7 @@ bool addData(command_list *list, char * data) {
     if (list == NULL)
         return false;
 
-    log(INFO, "New stream received, processing it...");
+    log(INFO, "%s", "New stream received, processing it...");
 
     int charactersProcessed = 0;
     while(charactersProcessed != MAXLINESIZE+1 && data[charactersProcessed] != 0){
@@ -228,7 +228,7 @@ bool addData(command_list *list, char * data) {
         if ( isEmpty(list) || list->last->data.commandStatus == COMPLETE ) {
             nodeToProcess = addNodeToList(list);
         } else if ( list->last->data.commandStatus == COMPLETEINVALID ){
-            log(ERROR, "Invalid command");
+            log(ERROR, "%s", "Invalid command");
             nodeToProcess = addNodeToList(list);
         } else { //last was in WRITING mode
             nodeToProcess = list->last;

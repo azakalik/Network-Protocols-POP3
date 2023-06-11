@@ -40,7 +40,7 @@ int setupTCPServerSocket(const char *service) {
 		// Create a TCP socket
 		servSock = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 		if (servSock < 0) {
-			log(DEBUG, "Cant't create socket on given address ");  
+			log(DEBUG, "%s", "Cant't create socket on given address ");  
 			continue;       // Socket creation failed; try next address
 		}
 
@@ -51,13 +51,13 @@ int setupTCPServerSocket(const char *service) {
 		
 		// Enable the reuse of local address and port
 		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) == -1){
-			log(ERROR, "Error setting socket option: SO_REUSEADDR");
+			log(ERROR, "%s", "Error setting socket option: SO_REUSEADDR");
 			exit(1);
 		}
 		
 		int on = 0;
 		if ( setsockopt(servSock, IPPROTO_IPV6, IPV6_V6ONLY, (const void *)&on, sizeof(on)) < 0 ){
-			log(ERROR,"Cant`t set socket option to recieve ipv4 and ipv6 connections")
+			log(ERROR,"%s", "Cant`t set socket option to recieve ipv4 and ipv6 connections")
 			exit(1);
 		}
 		

@@ -115,7 +115,7 @@ int getUserMails(char * username,user_buffer* outputBuffer){
 }
 
 int emptyFunction(char * arg1, char * arg2){
-    log(INFO, "executing empty functions");
+    log(INFO, "%s", "executing empty functions");
     return 0;
 }
 
