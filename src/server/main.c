@@ -107,13 +107,13 @@ static void closeAllClients(user_data usersData[]){
 }
 
 //attempts to execute the oldest command sent by a client
-static void executeFirstCommand(struct command_list * list, buffer * buffer, pop_state user_status){
+static void executeFirstCommand(struct command_list * list, user_data * user_data){
     if(availableCommands(list)){
         char * message;
         command_to_execute * command = getFirstCommand(list);
         if(command->callback.execute_command != NULL){
-            if (user_status == command->callback.pop_state){
-                command->callback.execute_command(command->arg1, command->arg2);
+            if (user_data->session_state == command->callback.pop_state){
+                command->callback.execute_command(command->arg1, command->arg2, user_data);
                 message = "+OK Executing function\n";
             } else {
                 message = "-ERR Invalid state\n";
@@ -122,7 +122,7 @@ static void executeFirstCommand(struct command_list * list, buffer * buffer, pop
         } else {
             message = "-ERR Invalid command\n";
         }
-        writeDataToBuffer(buffer, message, strlen(message));
+        writeDataToBuffer(&user_data->output_buff, message, strlen(message));
         
         free(command);
     }
@@ -140,7 +140,7 @@ static void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersDat
         if ( FD_ISSET(clntSocket,readFds) ){
             handleClientInput(&usersData[i]);
         } else if ( FD_ISSET(clntSocket,writeFds) ){
-            executeFirstCommand(usersData[i].command_list, &usersData[i].output_buff, usersData[i].session_state); //fills the output buffer with the response
+            executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
             writeToClient(&usersData[i]); //sends the content of output buffer to the client
         }
     }

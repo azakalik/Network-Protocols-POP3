@@ -47,6 +47,17 @@ command_with_state * getCommand(char * command_name){
     return NULL;
 }
 
+
+int writeToOutputBuffer(char * buffer, user_data* data ) {
+    int length = strlen(buffer);
+    if(getBufferFreeSpace(&data->output_buff) >= length ){
+        writeDataToBuffer(&data->output_buff, buffer, length);
+        return WRITE_SUCCESS;
+    }
+    
+    return WRITE_ERROR;
+}
+
 //-------------------------LIST FUNCTIONS-----------------------------------------------------------------------
 
 void sendGreeting(user_data * user){
@@ -54,9 +65,7 @@ void sendGreeting(user_data * user){
     writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
 }
 
-
-
-int getUserMails(char * username, user_data* data){
+int getUserMails(char * username, char * empty, user_data * user_data){
 
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
     strcat(auxBuffer,username);
@@ -84,12 +93,12 @@ int getUserMails(char * username, user_data* data){
 
     //-------- avanzamos el puntero hasta donde se quedo el usuario --> Reconstruir el estado
     int currentFile;
-    for ( currentFile = 0; currentFile < data->listStateData.amountSkippedFiles; currentFile++ ){
+    for ( currentFile = 0; currentFile < user_data->listStateData.amountSkippedFiles; currentFile++ ){
         entry = readdir(directoryPtr);
         sprintf(auxBuffer,"../mails/%s/%s",username,entry->d_name);
         char * filePath = auxBuffer;
         if ( stat(filePath, &fileStat) < 0){
-            log(ERROR,"ERROR RECOVERING STATISTICS");
+            log(ERROR,"%s", "ERROR RECOVERING STATISTICS");
             closedir(directoryPtr);
             return RECOVERERROR;
         }
@@ -116,9 +125,9 @@ int getUserMails(char * username, user_data* data){
             sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
             //escribmos de forma mas elaborada al buffer de salida del usuario
             //si en el buffer de salida no hay espacio --> no escribo la data de ese mail, (tengo q iterar de vuelta hasta encontrar ese mail la proxima vez)
-            if ( writeToOutputBuffer(auxBuffer, data) < 0 ){
-                data->listStateData.amountSkippedFiles = currentFile;
-                data->listStateData.state = PROCESSING;
+            if ( writeToOutputBuffer(auxBuffer, user_data) < 0 ){
+                user_data->listStateData.amountSkippedFiles = currentFile;
+                user_data->listStateData.state = PROCESSING;
                 closedir(directoryPtr);
                 return 0;
             }
@@ -134,29 +143,18 @@ int getUserMails(char * username, user_data* data){
     }
 
 
-    if(writeToOutputBuffer(".\r\n", data) < 0){
-        data->listStateData.amountSkippedFiles = currentFile;
-        data->listStateData.state = PROCESSING;
+    if(writeToOutputBuffer(".\r\n", user_data) < 0){
+        user_data->listStateData.amountSkippedFiles = currentFile;
+        user_data->listStateData.state = PROCESSING;
     } else {
-        data->listStateData.amountSkippedFiles = 0;
-        data->listStateData.state = COMPLETED;
+        user_data->listStateData.amountSkippedFiles = 0;
+        user_data->listStateData.state = COMPLETED;
     }
     closedir(directoryPtr);
     return 0;
 }
 
-int writeToOutputBuffer(char * buffer, user_data* data ) {
-    int length = strlen(buffer);
-    if(getBufferFreeSpace(&data->output_buff) >= length ){
-        writeDataToBuffer(&data->output_buff, buffer, length);
-        return WRITE_SUCCESS;
-    }
-    
-    return WRITE_ERROR;
-}
-
-
-int emptyFunction(char * arg1, char * arg2){
+int emptyFunction(char * arg1, char * empty, user_data * user_data){
     log(INFO, "%s", "executing empty functions");
     return 0;
 }
@@ -167,7 +165,7 @@ static bool userMailDirExists(char * username){
     return opendir(auxBuffer) != NULL; //todo error check in opendir
 }
 
-int signInWithUsername(char * username, user_data * user_data){
+int signInWithUsername(char * username, char * empty, user_data * user_data){
     if(!userMailDirExists(username))
         return -1;
 
@@ -175,7 +173,7 @@ int signInWithUsername(char * username, user_data * user_data){
     return 0;
 }
 
-int insertPassword(char * password, user_data * user_data){
+int insertPassword(char * password, char * empty, user_data * user_data){
     return 0;
 }
 
@@ -209,82 +207,82 @@ static FILE * openFile(char * path, user_data * data){
     return file;
 }
 
-static int startReadingMail(user_data * data, int msgNum){
-    data->retrStateData.state = PROCESSING;
-    char auxBuffer[AUXBUFFERSIZE];
-    return 0;
-}
+// static int startReadingMail(user_data * data, int msgNum){
+//     data->retrStateData.state = PROCESSING;
+//     char auxBuffer[AUXBUFFERSIZE];
+//     return 0;
+// }
 
 
-static void findFileData(char * buffer, long * fileSize, int msgNum, char * userName){
-    char dirPath[AUXBUFFERSIZE];
-    char auxBuffer[AUXBUFFERSIZE];
-    sprintf(dirPath, "../mails/%s", userName);
-    DIR * directoryPtr;
-    struct dirent *entry;
-    directoryPtr = opendir(dirPath);
+// static int findFileData(char * buffer, long * fileSize, int msgNum, char * userName){
+//     char dirPath[AUXBUFFERSIZE];
+//     char auxBuffer[AUXBUFFERSIZE];
+//     sprintf(dirPath, "../mails/%s", userName);
+//     DIR * directoryPtr;
+//     struct dirent *entry;
+//     directoryPtr = opendir(dirPath);
 
-    if (directoryPtr == NULL) {
-        log(ERROR,"Error opening dir: %s", dirPath);
-        return RECOVERERROR;
-    }
+//     if (directoryPtr == NULL) {
+//         log(ERROR,"Error opening dir: %s", dirPath);
+//         return RECOVERERROR;
+//     }
 
-    int count=1;
-    struct stat fileStat;
-    while ((entry = readdir(directoryPtr)) != NULL) {
+//     int count=1;
+//     struct stat fileStat;
+//     while ((entry = readdir(directoryPtr)) != NULL) {
 
-        sprintf(auxBuffer,"%s/%s",dirPath,entry->d_name);
-        char * filePath = auxBuffer;
-        if ( stat(filePath,&fileStat) < 0){
-            log(ERROR,"error recovering file statitistics for file %s\n",filePath);
-            closedir(directoryPtr);
-            return RECOVERERROR;
-        }
-        if ( S_ISREG(fileStat.st_mode) ){
-            if(count == msgNum){
-                *fileSize = fileStat.st_size;
-                strcpy(buffer, filePath);
-                closedir(directoryPtr);
-                return;
-            }
-            count++;
-        }
+//         sprintf(auxBuffer,"%s/%s",dirPath,entry->d_name);
+//         char * filePath = auxBuffer;
+//         if ( stat(filePath,&fileStat) < 0){
+//             log(ERROR,"error recovering file statitistics for file %s\n",filePath);
+//             closedir(directoryPtr);
+//             return RECOVERERROR;
+//         }
+//         if ( S_ISREG(fileStat.st_mode) ){
+//             if(count == msgNum){
+//                 *fileSize = fileStat.st_size;
+//                 strcpy(buffer, filePath);
+//                 closedir(directoryPtr);
+//                 return 0;
+//             }
+//             count++;
+//         }
 
-    }
+//     }
 
 
-}
+// }
 
-int retr(char * username, char * msgNum, user_data * data){
-    char auxBuff[AUXBUFFERSIZE];
+// int retr(char * mailNo, char * empty, user_data * user_data){
+//     char auxBuff[AUXBUFFERSIZE];
 
-    /*
-    off_t fileSize = fileStat.st_size;
-    struct stat fileStat;
-    if ( stat(auxBuff, &fileStat) < 0){
-        log(ERROR,"ERROR RECOVERING STATISTICS");
-        fclose(file);
-        return RECOVERERROR;
-    }
+//     /*
+//     off_t fileSize = fileStat.st_size;
+//     struct stat fileStat;
+//     if ( stat(auxBuff, &fileStat) < 0){
+//         log(ERROR,"ERROR RECOVERING STATISTICS");
+//         fclose(file);
+//         return RECOVERERROR;
+//     }
     
-    sprintf(auxBuff,"+OK %lld octets\r\n", (long long)fileSize);
-    */
+//     sprintf(auxBuff,"+OK %lld octets\r\n", (long long)fileSize);
+//     */
     
-    findFileName(auxBuff,atoi(msgNum),data->userName);
-    obtainFilePath(username,msgNum,auxBuff);
+//     findFileData(auxBuff,atoi(mailNo),user_data->userName);
+//     obtainFilePath(user_data->login_info.username, mailNo, auxBuff);
     
     
 
-    FILE * file = openFile(auxBuff, data);
+//     FILE * file = openFile(auxBuff, user_data);
 
-    //ver si hay espacio en el buffer de salida y mandar la rta
-    if ( writeToOutputBuffer(auxBuff, data) < 0 ){
-        data->retrStateData.state = PROCESSING;
-        data->retrStateData.offset = 0; //es 0 ?
-        fclose(file);
-        return 0;
-    }
+//     //ver si hay espacio en el buffer de salida y mandar la rta
+//     if ( writeToOutputBuffer(auxBuff, user_data) < 0 ){
+//         user_data->retrStateData.state = PROCESSING;
+//         user_data->retrStateData.offset = 0; //es 0 ?
+//         fclose(file);
+//         return 0;
+//     }
     
-    int avaiableSpace = getBufferOccupiedSpace(&data->output_buff);
+//     int avaiableSpace = getBufferOccupiedSpace(&user_data->output_buff);
     
-}
+// }
