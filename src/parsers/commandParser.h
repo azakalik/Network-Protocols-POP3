@@ -1,7 +1,7 @@
 #ifndef COMMAND_LIST_H
 #define COMMAND_LIST_H
 
-#include "../commands/popFunctions.h"
+#include "../pop/popFunctions.h"
 #include <stdbool.h>
 
 typedef struct { //struct used to execute already commands
