@@ -12,12 +12,9 @@
 #include "../util/util.h"
 #include "../parsers/commandParser.h"
 
-#define FOREVER 1
 #define MAX_CONNECTIONS 500
-#define NOT_INITIALIZED 1
 #define NOT_ALLOCATED -1
 
-static void handleGreeting(user_data * user);
 static void handleClients(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
@@ -27,7 +24,7 @@ static void handleStates(user_data* user);
 static void closeClient(user_data usersData[], int position);
 static void closeAllClients(user_data usersData[]);
 
-int servSock = NOT_INITIALIZED;
+int servSock = NOT_ALLOCATED;
 
 static bool serverRunning = true;
 
@@ -117,9 +114,9 @@ static void executeFirstCommand(struct command_list * list, user_buffer * buffer
         command_to_execute * command = getFirstCommand(list);
         if(command->callback != NULL){
             command->callback(command->arg1, command->arg2);
-            message = "Executing function\n";
+            message = "+OK Executing function\n";
         } else {
-            message = "Invalid command\n";
+            message = "-ERR Invalid command\n";
         }
         writeDataToBuffer(buffer, message, strlen(message));
         
@@ -144,11 +141,6 @@ static void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersDat
             handleStates(&usersData[i]);
         }
     }
-}
-
-static void handleGreeting(user_data * user){
-    char * welcomeMessage = "+OK Pop3 Server ready\r\n";
-    writeDataToBuffer(&user->output_buff, welcomeMessage, strlen(welcomeMessage));
 }
 
 //TODO: esto podria ser un vector de punteros a funcion por eficiencia. vale la pena?
@@ -193,7 +185,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
             connectedUsers[i].command_list = createList();
             allocatedClient = true;
             user = connectedUsers[i];
-            handleGreeting(&connectedUsers[i]);
+            sendGreeting(&connectedUsers[i]);
         }
     }
 
