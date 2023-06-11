@@ -1,5 +1,12 @@
-#include "serverFunctions.h"
 #include "../parsers/commandParser.h"
+#include "../logger/logger.h"
+#include "clients.h"
+#include <unistd.h> // close()
+#include <string.h> // memset()
+#include <sys/types.h> // send()
+#include <sys/socket.h> // send()
+#include <errno.h>
+
 #define NOT_ALLOCATED -1 //todo esto mismo esta declarado en main, buscar una solucion
 
 void releaseSocketResources(user_data * data){
@@ -37,8 +44,8 @@ void writeToClient(user_data * client){
 
 
 void handleClientInput(user_data * client){
-    char auxiliaryBuffer[MAXLINESIZE+1];
-    int bytesRead = recv(client->socket, auxiliaryBuffer, MAXLINESIZE, 0);
+    char auxiliaryBuffer[MAXCOMMANDLENGTH+1];
+    int bytesRead = recv(client->socket, auxiliaryBuffer, MAXCOMMANDLENGTH, 0);
     
     if ( bytesRead <= 0){
         //client closed connection, that position is released

@@ -2,6 +2,7 @@
 #define COMMAND_LIST_H
 
 #include "../commands/popFunctions.h"
+#include <stdbool.h>
 
 typedef struct { //struct used to execute already commands
     char command[MAXCOMMANDSIZE+1];

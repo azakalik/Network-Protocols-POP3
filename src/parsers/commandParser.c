@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
-#include "../server/serverFunctions.h"
+#include "../clients/clients.h"
 #include <stdio.h>
 #include "commandParser.h"
 #include "strings.h"
+#include "../logger/logger.h"
 
 
 typedef enum command_status {    
@@ -223,7 +224,7 @@ bool addData(command_list *list, char * data) {
     log(INFO, "%s", "New stream received, processing it...");
 
     int charactersProcessed = 0;
-    while(charactersProcessed != MAXLINESIZE+1 && data[charactersProcessed] != 0){
+    while(charactersProcessed != MAXCOMMANDLENGTH+1 && data[charactersProcessed] != 0){
         command_node * nodeToProcess;
         if ( isEmpty(list) || list->last->data.commandStatus == COMPLETE ) {
             nodeToProcess = addNodeToList(list);

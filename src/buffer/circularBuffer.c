@@ -1,29 +1,28 @@
-
 #include "circularBuffer.h"
 #include "../logger/logger.h"
 #include <stdbool.h>
 
-int getBufferFreeSpace(user_buffer *buff)
+int getBufferFreeSpace(buffer *buff)
 {
     return BUFFERSIZE - buff->count;
 }
 
-int getBufferOccupiedSpace(user_buffer *buff)
+int getBufferOccupiedSpace(buffer *buff)
 {
     return buff->count;
 }
 
-int isBufferFull(user_buffer *buff)
+int isBufferFull(buffer *buff)
 {
     return buff->count == BUFFERSIZE;
 }
 
-int isBufferEmpty(user_buffer *buff)
+int isBufferEmpty(buffer *buff)
 {
     return buff->count == 0;
 }
 
-void writeDataToBuffer(user_buffer *buff, char *src, int len)
+void writeDataToBuffer(buffer *buff, char *src, int len)
 {
     for (int i = 0; i < len; i++)
     {
@@ -38,7 +37,7 @@ void writeDataToBuffer(user_buffer *buff, char *src, int len)
     }
 }
 
-int readDataFromBuffer(user_buffer *buff, char *dest, int len)
+int readDataFromBuffer(buffer *buff, char *dest, int len)
 {
     int bytesRead = 0;
 
@@ -59,17 +58,3 @@ int readDataFromBuffer(user_buffer *buff, char *dest, int len)
 
     return bytesRead;
 }
-
-typedef enum {
-    WRITINGCOMMAND,
-    WRITINGARG1,
-    WRITINGARG2,
-    COMPLETE
-} command_state;
-
-typedef struct  {
-    char * comamand;
-    char * arg1;
-    char * arg2;
-    command_state state;
-} completecommand;

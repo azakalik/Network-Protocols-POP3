@@ -1,16 +1,9 @@
 #ifndef POP_FUNCTIONS
 #define POP_FUNCTIONS
 
-#include <stdio.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include "../server/serverFunctions.h"
-#include "../logger/logger.h"
-#include "popStates.h"
+#include "popStandards.h"
+#include "../clients/clients.h"
+#include "../buffer/circularBuffer.h"
 
 typedef int (*command_handler)(char * arg1, char * arg2); //pop functions declaration
 
@@ -26,9 +19,11 @@ typedef struct command_with_state {
 
 command_with_state * getCommand(char * command_name);
 void sendGreeting(user_data * user);
-int getUserMails(char * username,user_buffer *userBuffer);
+int getUserMails(char * username,buffer *userBuffer);
 int emptyFunction(char * arg1, char * arg2);
-int retr(char * username, char * msgNum, user_buffer *userBuffer);
+int retr(char * username, char * msgNum, buffer *userBuffer);
+int signInWithUsername(char * username, user_data * user_data);
+int insertPassword(char * password, user_data * user_data);
 
 typedef enum {
     READINGFILE,

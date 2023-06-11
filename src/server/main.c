@@ -1,4 +1,4 @@
-#include "serverFunctions.h"
+#include "../clients/clients.h"
 #include "serverUtils.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -107,7 +107,7 @@ static void closeAllClients(user_data usersData[]){
 }
 
 //attempts to execute the oldest command sent by a client
-static void executeFirstCommand(struct command_list * list, user_buffer * buffer, pop_state user_status){
+static void executeFirstCommand(struct command_list * list, buffer * buffer, pop_state user_status){
     if(availableCommands(list)){
         char * message;
         command_to_execute * command = getFirstCommand(list);

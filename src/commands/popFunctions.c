@@ -4,6 +4,17 @@
 #define GETNUMBER(n) (n - '0')
 #define GREETINGMESSAGE "+OK Pop3 Server Ready\r\n"
 
+#include <dirent.h>
+#include <sys/types.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include "../clients/clients.h"
+#include "../logger/logger.h"
+#include "popStandards.h"
+#include "stdbool.h"
+
 
 //---------------- LIST ----------------------------
 #include "popFunctions.h"
@@ -52,7 +63,7 @@ static int parseMailNumber(char * fileName){
 */
 
 
-int getUserMails(char * username,user_buffer* outputBuffer){
+int getUserMails(char * username,buffer* outputBuffer){
 
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
     char output[OUTPUTBUFFERSIZE] = {0};
@@ -62,7 +73,6 @@ int getUserMails(char * username,user_buffer* outputBuffer){
     struct dirent *entry;
     directoryPtr = opendir(auxBuffer);
     if (directoryPtr == NULL) {//todo improve
-        errno = ENOENT;//error no entry
         return RECOVERERROR;
     }
 
@@ -119,6 +129,24 @@ int emptyFunction(char * arg1, char * arg2){
     return 0;
 }
 
+static bool userMailDirExists(char * username){
+    char auxBuffer[AUXBUFFERSIZE] = "../mails/";
+    strcat(auxBuffer,username);
+    return opendir(auxBuffer) != NULL; //todo error check in opendir
+}
+
+int signInWithUsername(char * username, user_data * user_data){
+    if(!userMailDirExists(username))
+        return -1;
+
+    //save username to then compare with password
+    return 0;
+}
+
+int insertPassword(char * password, user_data * user_data){
+    return 0;
+}
+
 // Examples:
 //              C: RETR 1
 //              S: +OK 120 octets
@@ -127,7 +155,7 @@ int emptyFunction(char * arg1, char * arg2){
 
 
 //---------------- RETR ----------------------------
-int retr(char * username, char * msgNum, user_buffer *userBuffer){
+int retr(char * username, char * msgNum, buffer *userBuffer){
 
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
     char output[OUTPUTBUFFERSIZE] = {0};

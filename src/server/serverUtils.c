@@ -1,5 +1,14 @@
-#include "serverFunctions.h"
+#include "../clients/clients.h"
 #include "serverUtils.h"
+#include "../logger/logger.h"
+#include <errno.h>
+#include <sys/types.h> // getaddrinfo()
+#include <sys/socket.h> // getaddrinfo()
+#include <netdb.h> // getaddrinfo()
+#include <string.h> // memset()
+#include "../util/util.h" // printSocketAddress()
+#include <unistd.h> // close()
+
 
 #define MAXPENDING 5 // Maximum outstanding connection requests
 #define BUFSIZE 256
