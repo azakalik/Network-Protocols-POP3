@@ -100,6 +100,8 @@ static int recoverSpecificMail(char * userMailNumber,user_data * data, DIR * dir
         mailNumber += 1;
     }
 
+    return COMMANDERROR;
+
 }
 
 static int getAllMails(DIR * directoryPtr,user_data * data){

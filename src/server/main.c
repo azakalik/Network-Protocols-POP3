@@ -119,6 +119,7 @@ static void executeFirstCommand(struct command_list * list, user_data * user_dat
             if(command->callback.execute_command == NULL){
                 message = "-ERR Invalid command\n";
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                free(command);
                 return;
             } else if (user_data->session_state != command->callback.pop_state){
                 message = "-ERR Invalid state\n";
@@ -126,10 +127,10 @@ static void executeFirstCommand(struct command_list * list, user_data * user_dat
                 free(command);
                 return;
             }
-            user_data->currentCommand = command;
+            user_data->currentCommand = (void *)command;
         }
-
-        int functionStatus = user_data->currentCommand->callback.execute_command(user_data->currentCommand->arg1, user_data->currentCommand->arg2, user_data);
+        command_to_execute * command = (command_to_execute *)user_data->currentCommand;
+        int functionStatus = command->callback.execute_command(command->arg1, command->arg2, user_data);
         if (functionStatus == COMMANDCOMPLETED){
             user_data->commandState = AVAILABLE;
         } else if (functionStatus == INCOMPLETECOMMAND) {
@@ -140,7 +141,7 @@ static void executeFirstCommand(struct command_list * list, user_data * user_dat
         }
         if (user_data->commandState == AVAILABLE){
             user_data->commandState = AVAILABLE;
-            free(user_data->commandState);
+            free(user_data->currentCommand);
         }
     }
 }

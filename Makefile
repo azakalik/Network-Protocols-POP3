@@ -1,5 +1,5 @@
 STANDARD= -std=c11
-DISABLE_STYLE = -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -Wno-newline-eof -Wno-implicit-fallthrough # disable style warnings like unused functions
+DISABLE_STYLE = -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter #-Wno-implicit-fallthrough #-Wno-newline-eof   disable style warnings like unused functions
 DEBUG = -g # enable debugging symbols
 #STRICT = -Werror # treat warnings as errors
 SANITIZERS = -fsanitize=address -fsanitize=undefined -fsanitize=leak

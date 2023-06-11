@@ -1,9 +1,7 @@
 #ifndef CLIENTS_H
 #define CLIENTS_H
-
 #include "../pop/popStandards.h"
 #include "../buffer/circularBuffer.h"
-#include "../parsers/commandParser.h"
 #define ACCEPT_FAILURE -1
 
 typedef enum {
@@ -52,7 +50,7 @@ typedef struct {
 
     //aca va comando a ejecutar (el ptr con la data);
     //aca va el status --> AVAILABLE o PROCESSING -->    
-    command_to_execute * currentCommand;
+    void *currentCommand;
     command_execute_state commandState;
 } user_data;
 
