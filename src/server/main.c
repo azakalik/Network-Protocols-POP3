@@ -53,6 +53,7 @@ int main(int argc, char ** argv){
     memset(usersData,0,sizeof(usersData));
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         usersData[i].socket = NOT_ALLOCATED;
+        usersData[i].commandState = AVAILABLE;
     }
 
     fd_set readFds;
@@ -110,21 +111,37 @@ static void closeAllClients(user_data usersData[]){
 static void executeFirstCommand(struct command_list * list, user_data * user_data){
     if(availableCommands(list)){
         char * message;
-        command_to_execute * command = getFirstCommand(list);
-        if(command->callback.execute_command != NULL){
-            if (user_data->session_state == command->callback.pop_state){
-                command->callback.execute_command(command->arg1, command->arg2, user_data);
-                message = "+OK Executing function\n";
-            } else {
-                message = "-ERR Invalid state\n";
-            }
-                
-        } else {
-            message = "-ERR Invalid command\n";
-        }
-        writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+
+        if(user_data->commandState == AVAILABLE){
+            command_to_execute * command = getFirstCommand(list);
         
-        free(command);
+            //TODO: Escritura no controlada a buffer del cliente en caso de que este lleno
+            if(command->callback.execute_command == NULL){
+                message = "-ERR Invalid command\n";
+                writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                return;
+            } else if (user_data->session_state != command->callback.pop_state){
+                message = "-ERR Invalid state\n";
+                writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                free(command);
+                return;
+            }
+            user_data->currentCommand = command;
+        }
+
+        int functionStatus = user_data->currentCommand->callback.execute_command(user_data->currentCommand->arg1, user_data->currentCommand->arg2, user_data);
+        if (functionStatus == COMMANDCOMPLETED){
+            user_data->commandState = AVAILABLE;
+        } else if (functionStatus == INCOMPLETECOMMAND) {
+            user_data->commandState = PROCESSING;
+        } else {
+            log(ERROR,"%s","An error occured while executing a command")
+            //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
+        }
+        if (user_data->commandState == AVAILABLE){
+            user_data->commandState = AVAILABLE;
+            free(user_data->commandState);
+        }
     }
 }
 

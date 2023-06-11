@@ -5,9 +5,9 @@
 #include <stdbool.h>
 
 typedef struct { //struct used to execute already commands
-    char command[MAXCOMMANDSIZE+1];
+    char command[MAXCOMMANDSIZE+1]; // 0x100 --> 0x100 + sizeof(command_to_execute) 
     char arg1[MAXARGSIZE+1];
-    char arg2[MAXARGSIZE+1];
+    char arg2[MAXARGSIZE+1]; 
     command_with_state callback;
 } command_to_execute;
 

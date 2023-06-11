@@ -3,22 +3,21 @@
 
 #include "../pop/popStandards.h"
 #include "../buffer/circularBuffer.h"
+#include "../parsers/commandParser.h"
 #define ACCEPT_FAILURE -1
 
 typedef enum {
-    START,
-    COMPLETED,
-    PROCESSING,
-} processing_state;
+    AVAILABLE, //can execute new command
+    PROCESSING, //the current command hasn't finished yet
+} command_execute_state;
 
 typedef struct {
     int amountSkippedFiles;
-    processing_state state;
+    int requestedMail;
 } list_state_data;
 
 typedef struct {
     long offset;
-    processing_state state;
 } retr_state_data;
 
 typedef enum {
@@ -37,6 +36,7 @@ typedef struct {
     login_status login_status;
 } login_info;
 
+
 typedef struct {
     struct command_list * command_list;
     buffer output_buff;
@@ -49,6 +49,11 @@ typedef struct {
     retr_state_data retrStateData;
     login_info login_info;
     char userName[MAXARGSIZE+1];
+
+    //aca va comando a ejecutar (el ptr con la data);
+    //aca va el status --> AVAILABLE o PROCESSING -->    
+    command_to_execute * currentCommand;
+    command_execute_state commandState;
 } user_data;
 
 void writeToClient(user_data * client);

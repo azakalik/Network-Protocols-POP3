@@ -1,7 +1,6 @@
 #define AUXBUFFERSIZE 512
 #define OUTPUTBUFFERSIZE 512
 #define RECOVERERROR -1
-#define GETNUMBER(n) (n - '0')
 #define GREETINGMESSAGE "+OK Pop3 Server Ready\r\n"
 #define WRITE_ERROR -1
 #define WRITE_SUCCESS 0
@@ -60,39 +59,45 @@ int writeToOutputBuffer(char * buffer, user_data* data ) {
 
 //-------------------------LIST FUNCTIONS-----------------------------------------------------------------------
 
-void sendGreeting(user_data * user){
+int sendGreeting(user_data * user){
     char * greetingMessage = GREETINGMESSAGE;
     writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
+    return COMMANDCOMPLETED;
 }
 
 
-static int recoverSpecificMail(char * number,user_data * data, DIR * directoryPtr){
+static int recoverSpecificMail(char * userMailNumber,user_data * data, DIR * directoryPtr){
+    char auxBuffer[AUXBUFFERSIZE];
+    struct stat fileStat;
+    struct dirent *entry;
     errno = 0;
+    int mailNumber = 1;
+    int userMailNum = atoi(userMailNumber);
+
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
-        sprintf(auxBuffer,"../mails/%s/%s",username,entry->d_name);
+        sprintf(auxBuffer,"../mails/%s/%s",data->userName,entry->d_name);
         char * filePath = auxBuffer;
         if ( stat(filePath,&fileStat) < 0){
             log(ERROR,"error recovering file statitistics for file %s\n",filePath);
             closedir(directoryPtr);
-            return RECOVERERROR;
+            return COMMANDERROR;
         }
 
-        if ( S_ISREG(fileStat.st_mode) ){
+        if ( !S_ISREG(fileStat.st_mode) ){
+            continue;
+        }
+
+        if ( mailNumber == userMailNum ){
             off_t fileSize = fileStat.st_size;
             sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
-            //escribmos de forma mas elaborada al buffer de salida del usuario
-            //si en el buffer de salida no hay espacio --> no escribo la data de ese mail, (tengo q iterar de vuelta hasta encontrar ese mail la proxima vez)
-            if ( writeToOutputBuffer(auxBuffer, user_data) < 0 ){
-                user_data->listStateData.amountSkippedFiles = currentFile;
-                user_data->listStateData.state = PROCESSING;
-                closedir(directoryPtr);
-                return 0;
-            }
-            mailNumber += 1;
+            if ( writeToOutputBuffer(auxBuffer,data) < 0){
+                data->listStateData.requestedMail = mailNumber;
+                return INCOMPLETECOMMAND;
+            } 
+            return COMMANDCOMPLETED;
         }
-
-        currentFile++;
+        mailNumber += 1;
     }
 
 }
@@ -112,7 +117,7 @@ static int getAllMails(DIR * directoryPtr,user_data * data){
         if ( stat(filePath, &fileStat) < 0){
             log(ERROR,"%s", "ERROR RECOVERING STATISTICS");
             closedir(directoryPtr);
-            return RECOVERERROR;
+            return COMMANDERROR;
         }
         if ( S_ISREG(fileStat.st_mode) ){
             mailNumber++;
@@ -141,24 +146,31 @@ static int getAllMails(DIR * directoryPtr,user_data * data){
         if ( stat(filePath,&fileStat) < 0){
             log(ERROR,"error recovering file statitistics for file %s\n",filePath);
             closedir(directoryPtr);
-            return RECOVERERROR;
+            return COMMANDERROR;
         }
 
         if ( S_ISREG(fileStat.st_mode) ){
             off_t fileSize = fileStat.st_size;
-            sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
+            sprintf(auxBuffer,"+ OK %d %lld\r\n",mailNumber,(long long)fileSize);
             //escribmos de forma mas elaborada al buffer de salida del usuario
             //si en el buffer de salida no hay espacio --> no escribo la data de ese mail, (tengo q iterar de vuelta hasta encontrar ese mail la proxima vez)
             if ( writeToOutputBuffer(auxBuffer, data) < 0 ){
                 data->listStateData.amountSkippedFiles = currentFile;
-                data->listStateData.state = PROCESSING;
                 closedir(directoryPtr);
-                return 0;
+                return INCOMPLETECOMMAND;
             }
             mailNumber += 1;
         }
 
         currentFile++;
+    }
+
+    if(writeToOutputBuffer(".\r\n", data) < 0){
+        data->listStateData.amountSkippedFiles = currentFile;
+        return INCOMPLETECOMMAND;
+    } else {
+        data->listStateData.amountSkippedFiles = 0;
+        return COMMANDCOMPLETED;
     }
 
 }
@@ -171,32 +183,23 @@ int list(char * number, char * empty, user_data * user_data){
     DIR *directoryPtr;
     directoryPtr = opendir(auxBuffer);
     if (directoryPtr == NULL) {//todo improve
-        return RECOVERERROR;
+        return COMMANDERROR;
     }
 
     if ( number != NULL){
         return recoverSpecificMail(number,user_data,directoryPtr);
     } else {
-        return getAllMails(user_data);
+        return getAllMails(directoryPtr,user_data);
     }
 
-    
 
-
-    if(writeToOutputBuffer(".\r\n", user_data) < 0){
-        user_data->listStateData.amountSkippedFiles = currentFile;
-        user_data->listStateData.state = PROCESSING;
-    } else {
-        user_data->listStateData.amountSkippedFiles = 0;
-        user_data->listStateData.state = COMPLETED;
-    }
     closedir(directoryPtr);
     return 0;
 }
 
 int emptyFunction(char * arg1, char * empty, user_data * user_data){
     log(INFO, "%s", "executing empty functions");
-    return 0;
+    return COMMANDCOMPLETED;
 }
 
 static bool userMailDirExists(char * username){
@@ -207,14 +210,14 @@ static bool userMailDirExists(char * username){
 
 int signInWithUsername(char * username, char * empty, user_data * user_data){
     if(!userMailDirExists(username))
-        return -1;
+        return COMMANDERROR;
 
     //save username to then compare with password
-    return 0;
+    return COMMANDCOMPLETED;
 }
 
 int insertPassword(char * password, char * empty, user_data * user_data){
-    return 0;
+    return COMMANDCOMPLETED;
 }
 
 // Examples:
@@ -231,6 +234,7 @@ static void obtainFilePath(char * username, char * mailNumber, char * dest){
 }
 
 
+/*
 static FILE * openFile(char * path, user_data * data){
     FILE * file = fopen(path, "r");
     if(file == NULL){
@@ -246,6 +250,7 @@ static FILE * openFile(char * path, user_data * data){
 
     return file;
 }
+*/
 
 // static int startReadingMail(user_data * data, int msgNum){
 //     data->retrStateData.state = PROCESSING;
