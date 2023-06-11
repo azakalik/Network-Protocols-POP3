@@ -65,50 +65,8 @@ void sendGreeting(user_data * user){
     writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
 }
 
-int getUserMails(char * username, char * empty, user_data * user_data){
 
-    char auxBuffer[AUXBUFFERSIZE] = "../mails/";
-    strcat(auxBuffer,username);
-    
-    DIR *directoryPtr;
-    struct dirent *entry;
-    directoryPtr = opendir(auxBuffer);
-    if (directoryPtr == NULL) {//todo improve
-        return RECOVERERROR;
-    }
-
-    /*
-    On  success,  readdir() returns a pointer to a dirent structure.  (This
-       structure may be statically allocated; do not attempt to free(3) it.)
-
-       If the end of the directory stream is reached, NULL is returned and er‐
-       rno  is not changed.  If an error occurs, NULL is returned and errno is
-       set appropriately.  To distinguish end of stream from an error, set er‐
-       rno  to zero before calling readdir() and then check the value of errno
-       if NULL is returned.
-    */
-
-    int mailNumber = 1;
-    struct stat fileStat;
-
-    //-------- avanzamos el puntero hasta donde se quedo el usuario --> Reconstruir el estado
-    int currentFile;
-    for ( currentFile = 0; currentFile < user_data->listStateData.amountSkippedFiles; currentFile++ ){
-        entry = readdir(directoryPtr);
-        sprintf(auxBuffer,"../mails/%s/%s",username,entry->d_name);
-        char * filePath = auxBuffer;
-        if ( stat(filePath, &fileStat) < 0){
-            log(ERROR,"%s", "ERROR RECOVERING STATISTICS");
-            closedir(directoryPtr);
-            return RECOVERERROR;
-        }
-        if ( S_ISREG(fileStat.st_mode) ){
-            mailNumber++;
-        }
-    }
-
-
-
+static int recoverSpecificMail(char * number,user_data * data, DIR * directoryPtr){
     errno = 0;
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
@@ -137,10 +95,92 @@ int getUserMails(char * username, char * empty, user_data * user_data){
         currentFile++;
     }
 
-    if ( errno != 0 ){
-        closedir(directoryPtr);
+}
+
+static int getAllMails(DIR * directoryPtr,user_data * data){
+    char auxBuffer[AUXBUFFERSIZE];
+    int mailNumber = 1;
+    struct stat fileStat;
+
+    struct dirent *entry;
+    //-------- avanzamos el puntero hasta donde se quedo el usuario --> Reconstruir el estado
+    int currentFile;
+    for ( currentFile = 0; currentFile < data->listStateData.amountSkippedFiles; currentFile++ ){
+        entry = readdir(directoryPtr);
+        sprintf(auxBuffer,"../mails/%s/%s",data->login_info.username,entry->d_name);
+        char * filePath = auxBuffer;
+        if ( stat(filePath, &fileStat) < 0){
+            log(ERROR,"%s", "ERROR RECOVERING STATISTICS");
+            closedir(directoryPtr);
+            return RECOVERERROR;
+        }
+        if ( S_ISREG(fileStat.st_mode) ){
+            mailNumber++;
+        }
+    }
+
+
+    //continuamos desde donde se quedo el usuario
+
+    /*
+    On  success,  readdir() returns a pointer to a dirent structure.  (This
+       structure may be statically allocated; do not attempt to free(3) it.)
+       If the end of the directory stream is reached, NULL is returned and er‐
+       rno  is not changed.  If an error occurs, NULL is returned and errno is
+       set appropriately.  To distinguish end of stream from an error, set er‐
+       rno  to zero before calling readdir() and then check the value of errno
+       if NULL is returned.
+    */
+
+
+    errno = 0;
+    while ((entry = readdir(directoryPtr)) != NULL) {
+        // Check if the current entry is a file
+        sprintf(auxBuffer,"../mails/%s/%s",data->login_info.username,entry->d_name);
+        char * filePath = auxBuffer;
+        if ( stat(filePath,&fileStat) < 0){
+            log(ERROR,"error recovering file statitistics for file %s\n",filePath);
+            closedir(directoryPtr);
+            return RECOVERERROR;
+        }
+
+        if ( S_ISREG(fileStat.st_mode) ){
+            off_t fileSize = fileStat.st_size;
+            sprintf(auxBuffer,"%d %lld\r\n",mailNumber,(long long)fileSize);
+            //escribmos de forma mas elaborada al buffer de salida del usuario
+            //si en el buffer de salida no hay espacio --> no escribo la data de ese mail, (tengo q iterar de vuelta hasta encontrar ese mail la proxima vez)
+            if ( writeToOutputBuffer(auxBuffer, data) < 0 ){
+                data->listStateData.amountSkippedFiles = currentFile;
+                data->listStateData.state = PROCESSING;
+                closedir(directoryPtr);
+                return 0;
+            }
+            mailNumber += 1;
+        }
+
+        currentFile++;
+    }
+
+}
+
+int list(char * number, char * empty, user_data * user_data){
+
+    char auxBuffer[AUXBUFFERSIZE] = "../mails/";
+    strcat(auxBuffer,user_data->login_info.username);
+    
+    DIR *directoryPtr;
+    directoryPtr = opendir(auxBuffer);
+    if (directoryPtr == NULL) {//todo improve
         return RECOVERERROR;
     }
+
+    if ( number != NULL){
+        return recoverSpecificMail(number,user_data,directoryPtr);
+    } else {
+        return getAllMails(user_data);
+    }
+
+    
 
 
     if(writeToOutputBuffer(".\r\n", user_data) < 0){

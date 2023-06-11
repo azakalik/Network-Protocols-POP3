@@ -19,7 +19,7 @@ typedef struct command_with_state {
 
 command_with_state * getCommand(char * command_name);
 void sendGreeting(user_data * user);
-int getUserMails(char * mailNo, char * empty, user_data * user_data);
+int list(char * mailNo, char * empty, user_data * user_data);
 int emptyFunction(char * arg1, char * empty, user_data * user_data);
 int retr(char * msgNum, char * empty, user_data * user_data);
 int signInWithUsername(char * username, char * empty, user_data * user_data);
