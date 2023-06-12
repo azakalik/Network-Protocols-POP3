@@ -20,6 +20,7 @@
 
 //----------------FUNCTION-PROTOTYPES--------------------------
 int checkValidUsername(char * username, char * empty, user_data * data);
+int checkValidPassword(char * password, char * empty, user_data * data);
 
 
 //---------------- LIST-OF-COMMANDS----------------------------
@@ -28,7 +29,7 @@ int checkValidUsername(char * username, char * empty, user_data * data);
 command_with_state validCommands[TOTALCOMMANDS] = {
     {"TOP",  emptyFunction, TRANSACTION},
     {"USER", checkValidUsername, AUTHENTICATION},
-    {"PASS", emptyFunction, AUTHENTICATION},
+    {"PASS", checkValidPassword, AUTHENTICATION},
     {"STAT", emptyFunction, TRANSACTION},
     {"LIST", emptyFunction, TRANSACTION},
     {"RETR", emptyFunction, TRANSACTION},
@@ -75,11 +76,27 @@ int checkValidUsername(char * username, char * empty, user_data * data){
         message = "-ERR Invalid username\r\n";
     }
     int len = strlen(message);
-    if ( getBufferFreeSpace( &data->output_buff) >= len){
+    if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
         strcpy(data->userName,username);
         return COMMANDCOMPLETED;
     } 
+    return INCOMPLETECOMMAND;
+}
+
+
+int checkValidPassword(char * password, char * empty, user_data * data){
+    char * message;
+    if ( validPassword(data->userName,password) ){
+        message = "+OK Welcome\r\n";
+    } else {
+        message = "-ERR Authentication Failed\r\n";
+    }
+    int len = strlen(message);
+    if ( getBufferFreeSpace(&data->output_buff) >= len){
+        writeDataToBuffer(&data->output_buff,message,len);
+        return COMMANDCOMPLETED;
+    }
     return INCOMPLETECOMMAND;
 }
 

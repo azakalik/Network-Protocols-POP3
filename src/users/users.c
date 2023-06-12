@@ -33,11 +33,11 @@ bool validUsername(char * username){
 }
 
 
-bool validPassword(char * password){
+bool validPassword(char * username, char * password){
     registered_users_singleton * singletonPtr = getSingletonInstance();
     bool found = false;
     for ( int i = 0; i < singletonPtr->userAmount && !found; i++){
-        if (strcmp(singletonPtr->users[i].password,password) == 0){
+        if (strcmp(singletonPtr->users[i].password,password) == 0 && strcmp(singletonPtr->users[i].name,username) == 0){
             found = true;
         }
     }

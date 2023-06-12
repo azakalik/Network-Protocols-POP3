@@ -16,6 +16,6 @@ typedef struct {
 } registered_users_singleton;
 
 bool validUsername(char * username);
-bool validPassword(char * password);
+bool validPassword(char * username, char * password);
 
 #endif
