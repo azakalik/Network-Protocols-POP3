@@ -128,7 +128,7 @@ static void executeFirstCommand(struct command_list * list, user_data * user_dat
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
                 free(command);
                 return;
-            } else if (user_data->session_state != command->callback.pop_state){
+            } else if (user_data->session_state != command->callback.pop_state_needed){
                 message = "-ERR Invalid state\n";
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
                 free(command);
@@ -147,7 +147,6 @@ static void executeFirstCommand(struct command_list * list, user_data * user_dat
             //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
         }
         if (user_data->commandState == AVAILABLE){
-            user_data->commandState = AVAILABLE;
             free(user_data->currentCommand);
         }
     }

@@ -12,11 +12,11 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "../clients/clients.h"
 #include "../logger/logger.h"
 #include "popStandards.h"
 #include "stdbool.h"
 #include "../users/users.h"
+#include "popFunctions.h"
 
 //----------------FUNCTION-PROTOTYPES--------------------------
 int checkValidUsername(char * username, char * empty, user_data * data);
@@ -78,7 +78,7 @@ int checkValidUsername(char * username, char * empty, user_data * data){
     int len = strlen(message);
     if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
-        strcpy(data->userName,username);
+        strcpy(data->login_info.username,username);
         return COMMANDCOMPLETED;
     } 
     return INCOMPLETECOMMAND;
@@ -87,7 +87,7 @@ int checkValidUsername(char * username, char * empty, user_data * data){
 
 int checkValidPassword(char * password, char * empty, user_data * data){
     char * message;
-    if ( validPassword(data->userName,password) ){
+    if ( validPassword(data->login_info.username,password) ){
         message = "+OK Welcome\r\n";
     } else {
         message = "-ERR Authentication Failed\r\n";
@@ -119,7 +119,7 @@ static int recoverSpecificMail(char * userMailNumber,user_data * data, DIR * dir
 
     while ((entry = readdir(directoryPtr)) != NULL) {
         // Check if the current entry is a file
-        sprintf(auxBuffer,"../mails/%s/%s",data->userName,entry->d_name);
+        sprintf(auxBuffer,"../mails/%s/%s",data->login_info.username,entry->d_name);
         char * filePath = auxBuffer;
         if ( stat(filePath,&fileStat) < 0){
             log(ERROR,"error recovering file statitistics for file %s\n",filePath);
@@ -358,7 +358,7 @@ static FILE * openFile(char * path, user_data * data){
 //     sprintf(auxBuff,"+OK %lld octets\r\n", (long long)fileSize);
 //     */
     
-//     findFileData(auxBuff,atoi(mailNo),user_data->userName);
+//     findFileData(auxBuff,atoi(mailNo),data->login_info.username);
 //     obtainFilePath(user_data->login_info.username, mailNo, auxBuff);
     
     

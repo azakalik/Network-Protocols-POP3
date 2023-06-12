@@ -30,7 +30,7 @@ typedef enum {
 } login_status;
 
 typedef struct {
-    char username[MAXARGSIZE];
+    char username[MAXARGSIZE+1];
     login_status login_status;
 } login_info;
 
@@ -41,17 +41,12 @@ typedef struct {
     pop_state session_state;
     client_state client_state;
     int socket;
-    long fileOffset;
     buffer fileReadingBuffer;
     list_state_data listStateData;
     retr_state_data retrStateData;
     login_info login_info;
-    char userName[MAXARGSIZE+1];
-
-    //aca va comando a ejecutar (el ptr con la data);
-    //aca va el status --> AVAILABLE o PROCESSING -->    
-    void *currentCommand;
-    command_execute_state commandState;
+    void *currentCommand; //command currently executing
+    command_execute_state commandState; //command execution status (tells if you can execute a new command)
 } user_data;
 
 

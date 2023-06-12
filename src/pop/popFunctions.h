@@ -3,7 +3,6 @@
 
 #include "popStandards.h"
 #include "../clients/clients.h"
-#include "../buffer/circularBuffer.h"
 
 #define COMMANDCOMPLETED 0
 #define INCOMPLETECOMMAND 1
@@ -14,7 +13,7 @@ typedef int (*command_handler)(char * arg1, char * arg2, user_data * user_data);
 typedef struct command_with_state {
     char * commandStr;
     command_handler execute_command;
-    pop_state pop_state; //pop state needed to execute this command
+    pop_state pop_state_needed; //pop state needed to execute this command
 } command_with_state;
 
 #define VALIDTHREELETTERSCOMMANDSIZE 1
