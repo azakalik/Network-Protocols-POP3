@@ -11,6 +11,7 @@
 #include <signal.h>
 #include "../util/util.h"
 #include "../parsers/commandParser.h"
+#include "../users/users.h"
 
 #define MAX_CONNECTIONS 500
 #define NOT_ALLOCATED -1
@@ -34,6 +35,9 @@ sigterm_handler(const int signal) {
 }
 
 int main(int argc, char ** argv){
+
+    //TODO INITIALIZE SINGLETON INSTANCE
+
     // stdin will not be used
     close(STDIN_FILENO);
     //----------------------SOCKET CREATION---------------------------------------

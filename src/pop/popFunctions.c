@@ -16,14 +16,18 @@
 #include "../logger/logger.h"
 #include "popStandards.h"
 #include "stdbool.h"
+#include "../users/users.h"
+
+//----------------FUNCTION-PROTOTYPES--------------------------
+int checkValidUsername(char * username, char * empty, user_data * data);
 
 
-//---------------- LIST ----------------------------
+//---------------- LIST-OF-COMMANDS----------------------------
 #include "popFunctions.h"
 #include "strings.h"
 command_with_state validCommands[TOTALCOMMANDS] = {
     {"TOP",  emptyFunction, TRANSACTION},
-    {"USER", emptyFunction, AUTHENTICATION},
+    {"USER", checkValidUsername, AUTHENTICATION},
     {"PASS", emptyFunction, AUTHENTICATION},
     {"STAT", emptyFunction, TRANSACTION},
     {"LIST", emptyFunction, TRANSACTION},
@@ -55,6 +59,28 @@ int writeToOutputBuffer(char * buffer, user_data* data ) {
     }
     
     return WRITE_ERROR;
+}
+
+
+
+
+
+//------------------------USER FUNCTION------------------------------------------------------------------------
+
+int checkValidUsername(char * username, char * empty, user_data * data){
+    char * message;
+    if ( validUsername(username) ){
+        message = "+OK User accepted\r\n";
+    } else {
+        message = "-ERR Invalid username\r\n";
+    }
+    int len = strlen(message);
+    if ( getBufferFreeSpace( &data->output_buff) >= len){
+        writeDataToBuffer(&data->output_buff,message,len);
+        strcpy(data->userName,username);
+        return COMMANDCOMPLETED;
+    } 
+    return INCOMPLETECOMMAND;
 }
 
 //-------------------------LIST FUNCTIONS-----------------------------------------------------------------------

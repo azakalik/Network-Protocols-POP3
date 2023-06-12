@@ -54,6 +54,12 @@ typedef struct {
     command_execute_state commandState;
 } user_data;
 
+
+typedef struct {
+    char * username;
+    char * password;
+} registered_users;
+
 void writeToClient(user_data * client);
 void handleClientInput(user_data * client);
 
