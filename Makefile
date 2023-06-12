@@ -1,7 +1,7 @@
 STANDARD= -std=c11
-DISABLE_STYLE = -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter #-Wno-implicit-fallthrough #-Wno-newline-eof   disable style warnings like unused functions
+DISABLE_STYLE = -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-newline-eof  # disable style warnings like unused functions
 DEBUG = -g # enable debugging symbols
-#STRICT = -Werror # treat warnings as errors
+STRICT = -Werror # treat warnings as errors
 SANITIZERS = -fsanitize=address -fsanitize=undefined -fsanitize=leak
 CFLAGS = $(STANDARD) $(DISABLE_STYLE) $(DEBUG) $(STRICT) $(SANITIZERS) -pedantic -pedantic-errors -Wall -Wextra -D_POSIX_C_SOURCE=200112L -Wuninitialized -Wunused-variable 
 SRCDIR = src
