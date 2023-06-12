@@ -7,6 +7,8 @@
 #include <sys/socket.h> // send()
 #include <errno.h>
 
+#include "../stats/stats.h"
+
 #define NOT_ALLOCATED -1 //todo esto mismo esta declarado en main, buscar una solucion
 
 void releaseSocketResources(user_data * data){
@@ -28,6 +30,9 @@ void writeToClient(user_data * client){
             releaseSocketResources(client);
             return;
         } 
+
+        //we register how many bytes were send to the client in the statistics of our protocol
+        addTransferedBytesToStats(bytesSent);
         
         if (bytesSent < toWrite){
             int bytesToWriteBack = toWrite - bytesSent;
@@ -46,6 +51,8 @@ void writeToClient(user_data * client){
 void handleClientInput(user_data * client){
     char auxiliaryBuffer[MAXCOMMANDLENGTH+1];
     int bytesRead = recv(client->socket, auxiliaryBuffer, MAXCOMMANDLENGTH, 0);
+
+    
     
     if ( bytesRead <= 0){
         //client closed connection, that position is released
@@ -55,9 +62,21 @@ void handleClientInput(user_data * client){
         }
         log(INFO, "The client in socket %d sent a EOF. Releasing his resources...", client->socket);
         releaseSocketResources(client);
+
+        //we remove the concurrent connection from the statistics
+        removeConcurrentConnectionFromStats();
+
         return;
     }
     auxiliaryBuffer[bytesRead] = 0; //null terminate
+
+
+
+    //we add to statistics the amount of bytes read
+    addRecievedBytesToStats(bytesRead);
+
+
+
 
     addData(client->command_list, auxiliaryBuffer);
     client->client_state = WRITING;

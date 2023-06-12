@@ -15,7 +15,7 @@ typedef struct {
     int userAmount;
 } registered_users_singleton;
 
-registered_users_singleton * createSingletonInstance(int userAmounts, char ** names,bool initialized);
+registered_users_singleton * createSingletonInstance(int userAmounts, char ** names);
 bool validUsername(char * username);
 bool validPassword(char * username, char * password);
 

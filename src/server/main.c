@@ -12,6 +12,7 @@
 #include "../util/util.h"
 #include "../parsers/commandParser.h"
 #include "../users/users.h"
+#include "../stats/stats.h"
 
 #define MAX_CONNECTIONS 500
 #define NOT_ALLOCATED -1
@@ -38,7 +39,7 @@ int main(int argc, char ** argv){
 
     //-------------------------------------USER SINGLETON INSTANCE INITIALIZATION---------------------------------------
     args_data * data = parseArgs(argc,argv);
-    createSingletonInstance(data->userCount,data->users,false);
+    createSingletonInstance(data->userCount,data->users);
     freeArgs(data);
 
 
@@ -209,6 +210,9 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
         close(clntSock);
         exit(EXIT_FAILURE);
     }
+
+    //client was successfully allocated, we add it to the monitoring protocol statistics structure
+    addConcurrentConnectionToStats();
 
     
 	// clntSock is connected to a client!

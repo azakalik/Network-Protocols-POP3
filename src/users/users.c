@@ -4,7 +4,8 @@
 #include "../logger/logger.h"
 
 
-registered_users_singleton * createSingletonInstance(int userAmounts, char ** names,bool initialized){
+registered_users_singleton * createSingletonInstance(int userAmounts, char ** names){
+    static bool initialized = false;
     static registered_users_singleton instance;
     if (initialized){
         return &instance;
@@ -17,6 +18,7 @@ registered_users_singleton * createSingletonInstance(int userAmounts, char ** na
         strcpy(instance.users[i].password,password);
     }
     instance.userAmount = userAmounts;
+    initialized = true;
     return &instance;
 }
 
@@ -25,7 +27,7 @@ static registered_users_singleton * getSingletonInstance(){
     static registered_users_singleton * instance = NULL;
     
     if (instance == NULL){
-        instance = createSingletonInstance(0,NULL,true);
+        instance = createSingletonInstance(0,NULL);
     }
     return instance;
 }

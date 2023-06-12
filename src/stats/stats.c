@@ -25,18 +25,23 @@ static stats_singleton * getStatsInstance(){
 
 
 
-void addTransferedBytes(int bytes){
+void addTransferedBytesToStats(int bytes){
     stats_singleton * stats = getStatsInstance();
     stats->bytesTransfered += bytes;
 }
 
-void addConnection(){
+void addRecievedBytesToStats(int bytes){
+    stats_singleton * stats = getStatsInstance();
+    stats->bytesRecieved += bytes;
+}
+
+void addConcurrentConnectionToStats(){
     stats_singleton * stats = getStatsInstance();
     stats->concurrentConnections += 1;
     stats->historicConnections += 1;
 }
 
-void removeConnection(){
+void removeConcurrentConnectionFromStats(){
     stats_singleton * stats = getStatsInstance();
     stats->concurrentConnections -= 1;
 }
