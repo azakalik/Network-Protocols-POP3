@@ -36,16 +36,18 @@ sigterm_handler(const int signal) {
 
 int main(int argc, char ** argv){
 
-    //TODO INITIALIZE SINGLETON INSTANCE
+    //-------------------------------------USER SINGLETON INSTANCE INITIALIZATION---------------------------------------
+    args_data * data = parseArgs(argc,argv);
+    createSingletonInstance(data->userCount,data->users,false);
+    freeArgs(data);
+
+
 
     // stdin will not be used
     close(STDIN_FILENO);
     //----------------------SOCKET CREATION---------------------------------------
-	if (argc != 2) {
-		log(FATAL, "usage: %s <Server Port>", argv[0]);
-	}
-	char * servPort = argv[1];
     //servSock va a ser = 0 porque cerramos stdin
+	char * servPort = argv[1];
 	servSock = setupTCPServerSocket(servPort);
 	if (servSock < 0 )
 		return 1;

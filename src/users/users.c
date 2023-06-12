@@ -1,25 +1,36 @@
 #include "users.h"
 #include <stdio.h>
 #include <string.h>
-#define MAXUSERS 10
+#include "../logger/logger.h"
 
 
-static registered_users_singleton * createSingletonInstance(){
+registered_users_singleton * createSingletonInstance(int userAmounts, char ** names,bool initialized){
     static registered_users_singleton instance;
-    strcpy(instance.users[0].name,"sranucci");
-    strcpy(instance.users[0].password,"protos");
-    instance.userAmount = 1;
+    if (initialized){
+        return &instance;
+    }
+    char * delim = ":";
+    for ( int i = 0; i < userAmounts ; i++){
+        char * username = strtok(names[i],delim);
+        char * password = strtok(NULL,delim);
+        strcpy(instance.users[i].name,username);
+        strcpy(instance.users[i].password,password);
+    }
+    instance.userAmount = userAmounts;
     return &instance;
 }
 
 
 static registered_users_singleton * getSingletonInstance(){
     static registered_users_singleton * instance = NULL;
+    
     if (instance == NULL){
-        instance = createSingletonInstance();
+        instance = createSingletonInstance(0,NULL,true);
     }
     return instance;
 }
+
+
 
 bool validUsername(char * username){
     registered_users_singleton * singletonPtr = getSingletonInstance();

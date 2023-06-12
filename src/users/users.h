@@ -2,7 +2,7 @@
 #define AVAILABLE_USERS
 
 #define USERDATASIZE 512
-#define MAXUSERS 10
+#define MAXUSERS 500
 
 #include <stdbool.h>
 typedef struct {
@@ -15,6 +15,7 @@ typedef struct {
     int userAmount;
 } registered_users_singleton;
 
+registered_users_singleton * createSingletonInstance(int userAmounts, char ** names,bool initialized);
 bool validUsername(char * username);
 bool validPassword(char * username, char * password);
 
