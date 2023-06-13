@@ -123,7 +123,8 @@ void acceptConnection(user_data* connectedUsers,int servSock){
     user_data user;
     for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
         if ( connectedUsers[i].socket == NOT_ALLOCATED ){
-            allocatedClient = initClient(&connectedUsers[i], clntSock);
+            initClient(&connectedUsers[i], clntSock);
+			allocatedClient = true;
             user = connectedUsers[i];
             sendGreeting(&connectedUsers[i]);
         }
@@ -255,7 +256,7 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
             free(user_data->currentCommand);
         } else if (functionStatus == INCOMPLETECOMMAND) {
             user_data->commandState = PROCESSING;
-        } else {
+		} else {
             log(ERROR,"%s","An error occured while executing a command")
             //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
         }
@@ -274,7 +275,8 @@ void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersData)
         } else if ( FD_ISSET(clntSocket,writeFds) ){
             executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
             writeToClient(&usersData[i]); //sends the content of output buffer to the client
-            //if user->popState == update => quit
+            if(usersData[i].client_state == READING && usersData[i].session_state == UPDATE)
+				closeClient(&usersData[i]);
         }
     }
 }

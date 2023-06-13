@@ -19,12 +19,13 @@
 #include "popFunctions.h"
 
 //----------------FUNCTION-PROTOTYPES--------------------------
-int checkValidUsername(char * username, char * empty, user_data * data);
-int checkValidPassword(char * password, char * empty, user_data * data);
-int emptyFunction(char * arg1, char * empty, user_data * user_data);
-int quit(char *, char *, user_data * user_data);
-int noop(char *, char *, user_data * user_data);
-int dele(char *, char *, user_data * user_data);
+executionStatus checkValidUsername(char * username, char * empty, user_data * data);
+executionStatus checkValidPassword(char * password, char * empty, user_data * data);
+executionStatus emptyFunction(char * arg1, char * empty, user_data * user_data);
+executionStatus quit(char *, char *, user_data * user_data);
+executionStatus noop(char *, char *, user_data * user_data);
+executionStatus dele(char *, char *, user_data * user_data);
+executionStatus rset(char *, char *, user_data * user_data);
 
 
 //---------------- LIST-OF-COMMANDS----------------------------
@@ -39,8 +40,8 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"RETR", emptyFunction,         TRANSACTION},
     {"DELE", dele,                  TRANSACTION},
     {"NOOP", noop,                  TRANSACTION},
-    {"RSET", emptyFunction,         TRANSACTION},
-    {"QUIT", emptyFunction,         UPDATE}
+    {"RSET", rset,         TRANSACTION},
+    {"QUIT", quit,         TRANSACTION} //todo execute quit in auth also
 };
 
 
@@ -72,7 +73,7 @@ int writeToOutputBuffer(char * buffer, user_data* data ) { //todo use it in ever
 
 //------------------------USER FUNCTION------------------------------------------------------------------------
 
-int checkValidUsername(char * username, char * empty, user_data * data){
+executionStatus checkValidUsername(char * username, char * empty, user_data * data){
     char * message;
     if ( validUsername(username) ){
         message = "+OK User accepted\r\n";
@@ -89,7 +90,7 @@ int checkValidUsername(char * username, char * empty, user_data * data){
 }
 
 
-int checkValidPassword(char * password, char * empty, user_data * data){
+executionStatus checkValidPassword(char * password, char * empty, user_data * data){
     char * message;
     if ( validPassword(data->login_info.username,password) ){
         message = "+OK Welcome\r\n";
@@ -247,30 +248,30 @@ int list(char * number, char * empty, user_data * user_data){
     return 0;
 }
 
-int emptyFunction(char * arg1, char * empty, user_data * user_data){
+executionStatus emptyFunction(char * arg1, char * empty, user_data * user_data){
     log(INFO, "%s", "executing empty functions");
     return COMMANDCOMPLETED;
 }
 
-int noop(char * unused, char * unused2, user_data * user_data){
+executionStatus noop(char * unused, char * unused2, user_data * user_data){
     char * msg = "+OK\r\n";
 
     return writeToOutputBuffer(msg, user_data);
 }
 
-int dele(char * toDelete, char * unused, user_data * user_data){
+executionStatus dele(char * toDelete, char * unused, user_data * user_data){
     int toDeleteNumber = atoi(toDelete);
     queue(user_data->mailsToDelete, toDeleteNumber);
     return 0;
 }
 
-int rset(char * unused, char * unused2, user_data * user_data){
+executionStatus rset(char * unused, char * unused2, user_data * user_data){
     freeQueue(user_data->mailsToDelete);
     user_data->mailsToDelete = newQueue();
     return 0;
 }
 
-int quit(char * unused, char * unused2, user_data* user_data){
+executionStatus quit(char * unused, char * unused2, user_data* user_data){
     if(user_data->session_state == TRANSACTION){
         user_data->session_state = UPDATE;
         //execute all functions saved

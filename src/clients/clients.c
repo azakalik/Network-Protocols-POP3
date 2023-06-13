@@ -24,7 +24,7 @@ void writeToClient(user_data * client){
         char auxiliaryBuffer[toWrite];
         
         readDataFromBuffer(&client->output_buff, auxiliaryBuffer, toWrite);
-        int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, 0); //TODO: add flags
+        int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, MSG_NOSIGNAL); //TODO: add flags
         if ( bytesSent < 0 ){
             log(ERROR,"Could not send data to buffer %d",client->socket);
             releaseSocketResources(client);
@@ -41,9 +41,8 @@ void writeToClient(user_data * client){
         }
     }
 
-    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list))
+    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list)){}
         client->client_state = READING;
-
     return;
 }
 
@@ -82,13 +81,12 @@ void readFromClient(user_data * client){
     client->client_state = WRITING;
 }
 
-bool initClient(user_data * client, int sockNum){
+void initClient(user_data * client, int sockNum){
     client->socket = sockNum;
     client->session_state = AUTHENTICATION;
     client->client_state = WRITING;
     client->command_list = createList();
     client->mailsToDelete = newQueue();
-    return true;
 }
 
 void closeClient(user_data * client){
