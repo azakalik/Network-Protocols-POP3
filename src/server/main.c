@@ -140,14 +140,12 @@ static void executeFirstCommand(struct command_list * list, user_data * user_dat
         int functionStatus = command->callback.execute_command(command->arg1, command->arg2, user_data);
         if (functionStatus == COMMANDCOMPLETED){
             user_data->commandState = AVAILABLE;
+            free(user_data->currentCommand);
         } else if (functionStatus == INCOMPLETECOMMAND) {
             user_data->commandState = PROCESSING;
         } else {
             log(ERROR,"%s","An error occured while executing a command")
             //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
-        }
-        if (user_data->commandState == AVAILABLE){
-            free(user_data->currentCommand);
         }
     }
 }

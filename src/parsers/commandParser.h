@@ -11,9 +11,8 @@ typedef struct { //struct used to execute already commands
     command_with_state callback;
 } command_to_execute;
 
-//these are declared in commandParser.c
-//we do not want code outside commandParser.c understand what is inside these structs
-struct full_command;
+//this is declared in commandParser.c
+//we do not want code outside commandParser.c understand what is in commandList
 struct command_list;
 
 struct command_list * createList();
