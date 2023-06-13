@@ -56,6 +56,6 @@ typedef struct {
 } registered_users;
 
 void writeToClient(user_data * client);
-void handleClientInput(user_data * client);
+void readFromClient(user_data * client);
 
 #endif

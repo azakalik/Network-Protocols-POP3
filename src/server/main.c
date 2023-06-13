@@ -160,7 +160,7 @@ static void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersDat
             continue;
 
         if ( FD_ISSET(clntSocket,readFds) ){
-            handleClientInput(&usersData[i]);
+            readFromClient(&usersData[i]);
         } else if ( FD_ISSET(clntSocket,writeFds) ){
             executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
             writeToClient(&usersData[i]); //sends the content of output buffer to the client

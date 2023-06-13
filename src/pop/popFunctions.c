@@ -24,6 +24,7 @@ int checkValidPassword(char * password, char * empty, user_data * data);
 int emptyFunction(char * arg1, char * empty, user_data * user_data);
 int quit(char *, char *, user_data * user_data);
 int noop(char *, char *, user_data * user_data);
+int dele(char *, char *, user_data * user_data);
 
 
 //---------------- LIST-OF-COMMANDS----------------------------
@@ -36,7 +37,7 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"STAT", emptyFunction,         TRANSACTION},
     {"LIST", emptyFunction,         TRANSACTION},
     {"RETR", emptyFunction,         TRANSACTION},
-    {"DELE", emptyFunction,         TRANSACTION},
+    {"DELE", dele,                  TRANSACTION},
     {"NOOP", noop,                  TRANSACTION},
     {"RSET", emptyFunction,         TRANSACTION},
     {"QUIT", emptyFunction,         UPDATE}
@@ -255,6 +256,11 @@ int noop(char * unused, char * unused2, user_data * user_data){
     char * msg = "+OK\r\n";
 
     return writeToOutputBuffer(msg, user_data);
+}
+
+int dele(char *, char *, user_data * user_data){
+    
+    return 0;
 }
 
 int quit(char * unused, char * unused2, user_data* user_data){

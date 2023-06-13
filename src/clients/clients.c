@@ -48,7 +48,7 @@ void writeToClient(user_data * client){
 }
 
 
-void handleClientInput(user_data * client){
+void readFromClient(user_data * client){
     char auxiliaryBuffer[MAXCOMMANDLENGTH+1];
     int bytesRead = recv(client->socket, auxiliaryBuffer, MAXCOMMANDLENGTH, 0);
 
