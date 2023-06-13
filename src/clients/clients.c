@@ -11,14 +11,6 @@
 
 #define NOT_ALLOCATED -1 //todo esto mismo esta declarado en main, buscar una solucion
 
-void releaseSocketResources(user_data * data){
-    close(data->socket);
-    destroyList(data->command_list);
-    freeQueue(data->mailsToDelete);
-    memset(data,0,sizeof(user_data));
-    data->socket = NOT_ALLOCATED;
-}
-
 void writeToClient(user_data * client){
     int toWrite = getBufferOccupiedSpace(&client->output_buff);
     if(toWrite!=0){
@@ -28,7 +20,7 @@ void writeToClient(user_data * client){
         int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, MSG_NOSIGNAL); //TODO: add flags
         if ( bytesSent < 0 ){
             log(ERROR,"Could not send data to buffer %d",client->socket);
-            releaseSocketResources(client);
+            closeClient(client);
             return;
         } 
 
@@ -61,7 +53,7 @@ void readFromClient(user_data * client){
             return;
         }
         log(INFO, "The client in socket %d sent a EOF. Releasing his resources...", client->socket);
-        releaseSocketResources(client);
+        closeClient(client);
 
         //we remove the concurrent connection from the statistics
         removeConcurrentConnectionFromStats();

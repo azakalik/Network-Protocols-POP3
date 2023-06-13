@@ -19,7 +19,7 @@ typedef struct command_with_state {
 } command_with_state;
 
 #define VALIDTHREELETTERSCOMMANDSIZE 1
-#define VALIDFOURLETTERSCOMMANDSIZE 9
+#define VALIDFOURLETTERSCOMMANDSIZE 10
 #define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
 
 command_with_state * getCommand(char * command_name);
