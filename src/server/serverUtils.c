@@ -13,10 +13,17 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "../users/users.h"
+#include "../pop/popFunctions.h"
+#include "../stats/stats.h"
+#include <signal.h>
+#include "../parsers/commandParser.h"
+
 
 #define MAXPENDING 5 // Maximum outstanding connection requests
 #define BUFSIZE 256
 #define MAX_ADDR_BUFFER 128
+
+
 
 static char addrBuffer[MAX_ADDR_BUFFER];
 /*
@@ -96,6 +103,52 @@ int setupTCPServerSocket(const char *service) {
 	return servSock;
 }
 
+void acceptConnection(user_data* connectedUsers,int servSock){
+
+    char addrBuffer[BUFFERSIZE];
+    struct sockaddr_storage clntAddr; // Client address
+	// Set length of client address structure (in-out parameter)
+	socklen_t clntAddrLen = sizeof(clntAddr);
+
+	// Wait for a client to connect
+    //TODO: Preguntar a coda non-blocking
+	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
+
+	if (clntSock < 0) {
+		log(ERROR, "%s", "accept() failed");
+		exit(ACCEPT_FAILURE);
+	}
+
+    bool allocatedClient = false;
+    user_data user;
+    for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
+        if ( connectedUsers[i].socket == NOT_ALLOCATED ){
+            allocatedClient = initClient(&connectedUsers[i], clntSock);
+            user = connectedUsers[i];
+            sendGreeting(&connectedUsers[i]);
+        }
+    }
+
+    if ( !allocatedClient ){
+        log(ERROR,"%s", "Could not allocate client who requested to connect, users structure is full");
+        close(clntSock);
+        exit(EXIT_FAILURE); //todo dont exit!
+    } else if (user.command_list == NULL){
+        log(ERROR,"%s", "Could not allocate memory for a command list in a new connection");
+        close(clntSock);
+        exit(EXIT_FAILURE);
+    }
+
+    //client was successfully allocated, we add it to the monitoring protocol statistics structure
+    addConcurrentConnectionToStats();
+
+    
+	// clntSock is connected to a client!
+	printSocketAddress((struct sockaddr *) &clntAddr, addrBuffer);
+	log(INFO, "Handling client %s", addrBuffer);
+
+}
+
 
 static char * strduplicate(char * str){
 	int len = strlen(str) + 1;
@@ -166,3 +219,105 @@ void freeArgs(args_data * args){
 	free(args->users);
 	free(args);
 }
+
+void closeAllClients(user_data usersData[]){
+    for (int i = 0; i < MAX_CONNECTIONS; i++){
+        closeClient(&usersData[i]);
+    }
+}
+
+//attempts to execute the oldest command sent by a client
+void executeFirstCommand(struct command_list * list, user_data * user_data){
+    if(availableCommands(list)){
+        char * message;
+
+        if(user_data->commandState == AVAILABLE){
+            command_to_execute * command = getFirstCommand(list);
+        
+            //TODO: Escritura no controlada a buffer del cliente en caso de que este lleno
+            if(command->callback.execute_command == NULL){
+                message = "-ERR Invalid command\n";
+                writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                free(command);
+                return;
+            } else if (user_data->session_state != command->callback.pop_state_needed){
+                message = "-ERR Invalid state\n";
+                writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                free(command);
+                return;
+            }
+            user_data->currentCommand = (void *)command;
+        }
+        command_to_execute * command = (command_to_execute *)user_data->currentCommand;
+        int functionStatus = command->callback.execute_command(command->arg1, command->arg2, user_data);
+        if (functionStatus == COMMANDCOMPLETED){
+            user_data->commandState = AVAILABLE;
+            free(user_data->currentCommand);
+        } else if (functionStatus == INCOMPLETECOMMAND) {
+            user_data->commandState = PROCESSING;
+        } else {
+            log(ERROR,"%s","An error occured while executing a command")
+            //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
+        }
+    }
+}
+
+void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersData)
+{
+    for ( int i = 0; i < MAX_CONNECTIONS ; i++){
+        int clntSocket = usersData[i].socket;
+        if (clntSocket == NOT_ALLOCATED)
+            continue;
+
+        if ( FD_ISSET(clntSocket,readFds) ){
+            readFromClient(&usersData[i]);
+        } else if ( FD_ISSET(clntSocket,writeFds) ){
+            executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
+            writeToClient(&usersData[i]); //sends the content of output buffer to the client
+            //if user->popState == update => quit
+        }
+    }
+}
+
+
+
+
+void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users){
+    int maxFd = *maxNumberFd;
+    for (int i = 0; i < MAX_CONNECTIONS; i++){
+        int clientSocket = users[i].socket;
+        if (clientSocket == NOT_ALLOCATED)
+            continue;
+
+        if (users[i].client_state == READING)
+            FD_SET(clientSocket,readSet);
+        else if (users[i].client_state == WRITING)
+            FD_SET(clientSocket,writeSet);
+
+        if ( clientSocket > maxFd)
+            maxFd = clientSocket;
+    }
+    *maxNumberFd = maxFd;
+}
+
+
+void handleSelectActivityError(){
+    switch (errno)
+    {
+    case EBADF:
+        log(ERROR,"%s", "One or more fd in the set are not valid\n");
+        break;
+    case EINTR:
+        log(INFO,"%s", "The select was interrupted by a signal before any request event occured\n");
+        break;
+    case EINVAL:
+        log(ERROR,"%s", "The highest fd + 1 is negative or exeeds system limit\n");
+        break;
+    case ENOMEM:
+        log(ERROR,"%s", "not enough memory to allocate required data for structures on select\n");
+    default:
+        log(ERROR,"%s", "unexpected error when handling select activity\n");
+        break;
+    }
+}
+

@@ -81,3 +81,24 @@ void readFromClient(user_data * client){
     addData(client->command_list, auxiliaryBuffer);
     client->client_state = WRITING;
 }
+
+bool initClient(user_data * client, int sockNum){
+    client->socket = sockNum;
+    client->session_state = AUTHENTICATION;
+    client->client_state = WRITING;
+    client->command_list = createList();
+    client->mailsToDelete = newQueue();
+    return true;
+}
+
+void closeClient(user_data * client){
+    if(client->socket == NOT_ALLOCATED)
+        return;
+
+    destroyList(client->command_list);
+    freeQueue(client->mailsToDelete);
+    close(client->socket);
+    memset(client,0,sizeof(user_data)); //to mark it as unoccupied
+    client->socket = NOT_ALLOCATED;
+}
+

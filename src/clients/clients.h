@@ -3,6 +3,7 @@
 #include "../pop/popStandards.h"
 #include "../buffer/circularBuffer.h"
 #include "../queue/queueADT.h"
+#include <stdbool.h>
 #define ACCEPT_FAILURE -1
 
 typedef enum {
@@ -59,5 +60,7 @@ typedef struct {
 
 void writeToClient(user_data * client);
 void readFromClient(user_data * client);
+bool initClient(user_data * client, int sockNum);
+void closeClient(user_data * usersData);
 
 #endif

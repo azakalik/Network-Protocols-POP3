@@ -1,5 +1,9 @@
 #ifndef TCPSERVERUTIL_H_
 #define TCPSERVERUTIL_H_
+#define MAX_CONNECTIONS 500
+#define NOT_ALLOCATED -1
+
+#include <sys/select.h>
 
 typedef struct {
     char* port;
@@ -13,5 +17,11 @@ args_data * parseArgs(int argc, char ** argv);
 
 // Create, bind, and listen a new TCP server socket
 int setupTCPServerSocket(const char *service);
+
+void acceptConnection(user_data* connectedUsers,int servSock);
+void handleClients(fd_set *readFd, fd_set *writeFd, user_data *usersData);
+void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
+void handleSelectActivityError();
+void closeAllClients(user_data usersData[]);
 
 #endif 
