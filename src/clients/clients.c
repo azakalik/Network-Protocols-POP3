@@ -14,6 +14,7 @@
 void releaseSocketResources(user_data * data){
     close(data->socket);
     destroyList(data->command_list);
+    freeQueue(data->mailsToDelete);
     memset(data,0,sizeof(user_data));
     data->socket = NOT_ALLOCATED;
 }

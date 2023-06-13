@@ -24,7 +24,7 @@ executionStatus checkValidPassword(char * password, char * empty, user_data * da
 executionStatus emptyFunction(char * arg1, char * empty, user_data * user_data);
 executionStatus quit(char *, char *, user_data * user_data);
 executionStatus noop(char *, char *, user_data * user_data);
-executionStatus dele(char *, char *, user_data * user_data);
+executionStatus dele(char * toDelete, char *, user_data * user_data);
 executionStatus rset(char *, char *, user_data * user_data);
 
 
@@ -40,8 +40,9 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"RETR", emptyFunction,         TRANSACTION},
     {"DELE", dele,                  TRANSACTION},
     {"NOOP", noop,                  TRANSACTION},
-    {"RSET", rset,         TRANSACTION},
-    {"QUIT", quit,         TRANSACTION} //todo execute quit in auth also
+    {"RSET", rset,                  TRANSACTION},
+    {"QUIT", quit,                  ANY}, //todo execute quit in auth also
+    {"CAPA", emptyFunction,         AUTHENTICATION},
 };
 
 
@@ -259,7 +260,7 @@ executionStatus noop(char * unused, char * unused2, user_data * user_data){
     return writeToOutputBuffer(msg, user_data);
 }
 
-executionStatus dele(char * toDelete, char * unused, user_data * user_data){
+executionStatus dele(char * toDelete, char * unused, user_data * user_data){ //todo check valid number
     int toDeleteNumber = atoi(toDelete);
     queue(user_data->mailsToDelete, toDeleteNumber);
     return 0;

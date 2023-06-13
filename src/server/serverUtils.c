@@ -241,7 +241,7 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
                 free(command);
                 return;
-            } else if (user_data->session_state != command->callback.pop_state_needed){
+            } else if (command->callback.pop_state_needed != ANY && user_data->session_state != command->callback.pop_state_needed){
                 message = "-ERR Invalid state\n";
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
                 free(command);
