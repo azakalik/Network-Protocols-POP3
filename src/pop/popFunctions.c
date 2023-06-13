@@ -41,7 +41,7 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"DELE", dele,                  TRANSACTION},
     {"NOOP", noop,                  TRANSACTION},
     {"RSET", rset,                  TRANSACTION},
-    {"QUIT", quit,                  ANY}, //todo execute quit in auth also
+    {"QUIT", quit,                  ANY},
     {"CAPA", emptyFunction,         AUTHENTICATION},
 };
 
@@ -57,7 +57,7 @@ command_with_state * getCommand(char * command_name){
     return NULL;
 }
 
-
+//todo improve!!!
 int writeToOutputBuffer(char * buffer, user_data* data ) { //todo use it in every pop function
     int length = strlen(buffer);
     if(getBufferFreeSpace(&data->output_buff) >= length ){
@@ -274,7 +274,6 @@ executionStatus rset(char * unused, char * unused2, user_data * user_data){
 
 executionStatus quit(char * unused, char * unused2, user_data* user_data){
     if(user_data->session_state == TRANSACTION){
-        user_data->session_state = UPDATE;
         //execute all functions saved
         //int mailNo;
         toBegin(user_data->mailsToDelete);
@@ -283,6 +282,7 @@ executionStatus quit(char * unused, char * unused2, user_data* user_data){
             //todo delete mailNo
         }
     }
+    user_data->session_state = UPDATE;
     
     return 0;
 }
