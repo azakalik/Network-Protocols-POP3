@@ -21,22 +21,25 @@
 //----------------FUNCTION-PROTOTYPES--------------------------
 int checkValidUsername(char * username, char * empty, user_data * data);
 int checkValidPassword(char * password, char * empty, user_data * data);
+int emptyFunction(char * arg1, char * empty, user_data * user_data);
+int quit(char *, char *, user_data * user_data);
+int noop(char *, char *, user_data * user_data);
 
 
 //---------------- LIST-OF-COMMANDS----------------------------
 #include "popFunctions.h"
 #include "strings.h"
 command_with_state validCommands[TOTALCOMMANDS] = {
-    {"TOP",  emptyFunction, TRANSACTION},
-    {"USER", checkValidUsername, AUTHENTICATION},
-    {"PASS", checkValidPassword, AUTHENTICATION},
-    {"STAT", emptyFunction, TRANSACTION},
-    {"LIST", emptyFunction, TRANSACTION},
-    {"RETR", emptyFunction, TRANSACTION},
-    {"DELE", emptyFunction, TRANSACTION},
-    {"NOOP", emptyFunction, TRANSACTION},
-    {"RSET", emptyFunction, TRANSACTION},
-    {"QUIT", emptyFunction, UPDATE}
+    {"TOP",  emptyFunction,         TRANSACTION},
+    {"USER", checkValidUsername,    AUTHENTICATION},
+    {"PASS", checkValidPassword,    AUTHENTICATION},
+    {"STAT", emptyFunction,         TRANSACTION},
+    {"LIST", emptyFunction,         TRANSACTION},
+    {"RETR", emptyFunction,         TRANSACTION},
+    {"DELE", emptyFunction,         TRANSACTION},
+    {"NOOP", noop,                  TRANSACTION},
+    {"RSET", emptyFunction,         TRANSACTION},
+    {"QUIT", emptyFunction,         UPDATE}
 };
 
 
@@ -52,7 +55,7 @@ command_with_state * getCommand(char * command_name){
 }
 
 
-int writeToOutputBuffer(char * buffer, user_data* data ) {
+int writeToOutputBuffer(char * buffer, user_data* data ) { //todo use it in every pop function
     int length = strlen(buffer);
     if(getBufferFreeSpace(&data->output_buff) >= length ){
         writeDataToBuffer(&data->output_buff, buffer, length);
@@ -95,6 +98,7 @@ int checkValidPassword(char * password, char * empty, user_data * data){
     int len = strlen(message);
     if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
+        data->session_state = TRANSACTION;
         return COMMANDCOMPLETED;
     }
     return INCOMPLETECOMMAND;
@@ -122,7 +126,7 @@ static int recoverSpecificMail(char * userMailNumber,user_data * data, DIR * dir
         sprintf(auxBuffer,"../mails/%s/%s",data->login_info.username,entry->d_name);
         char * filePath = auxBuffer;
         if ( stat(filePath,&fileStat) < 0){
-            log(ERROR,"error recovering file statitistics for file %s\n",filePath);
+            log(ERROR,"error recovering file statitistics for file %s\r\n",filePath);
             closedir(directoryPtr);
             return COMMANDERROR;
         }
@@ -247,22 +251,26 @@ int emptyFunction(char * arg1, char * empty, user_data * user_data){
     return COMMANDCOMPLETED;
 }
 
+int noop(char * unused, char * unused2, user_data * user_data){
+    char * msg = "+OK\r\n";
+
+    return writeToOutputBuffer(msg, user_data);
+}
+
+int quit(char * unused, char * unused2, user_data* user_data){
+    if(user_data->session_state == TRANSACTION){
+        user_data->session_state = UPDATE;
+        //execute all functions saved
+    }
+
+    
+    return 0;
+}
+
 static bool userMailDirExists(char * username){
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
     strcat(auxBuffer,username);
     return opendir(auxBuffer) != NULL; //todo error check in opendir
-}
-
-int signInWithUsername(char * username, char * empty, user_data * user_data){
-    if(!userMailDirExists(username))
-        return COMMANDERROR;
-
-    //save username to then compare with password
-    return COMMANDCOMPLETED;
-}
-
-int insertPassword(char * password, char * empty, user_data * user_data){
-    return COMMANDCOMPLETED;
 }
 
 // Examples:

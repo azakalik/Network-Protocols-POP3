@@ -22,11 +22,6 @@ typedef struct command_with_state {
 
 command_with_state * getCommand(char * command_name);
 int sendGreeting(user_data * user);
-int list(char * mailNo, char * empty, user_data * user_data);
-int emptyFunction(char * arg1, char * empty, user_data * user_data);
-int retr(char * msgNum, char * empty, user_data * user_data);
-int signInWithUsername(char * username, char * empty, user_data * user_data);
-int insertPassword(char * password, char * empty, user_data * user_data);
 
 typedef enum {
     READINGFILE,
