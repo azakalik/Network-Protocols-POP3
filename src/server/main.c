@@ -1,18 +1,10 @@
 #include "../clients/clients.h"
 #include "serverUtils.h"
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include "../logger/logger.h"
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <signal.h>
-#include "../util/util.h"
-#include "../parsers/commandParser.h"
 #include "../users/users.h"
-#include "../stats/stats.h"
-#include "../queue/queueADT.h"
 
 int servSock = NOT_ALLOCATED;
 
