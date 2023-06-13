@@ -2,6 +2,7 @@
 #define CLIENTS_H
 #include "../pop/popStandards.h"
 #include "../buffer/circularBuffer.h"
+#include "../queue/queueADT.h"
 #define ACCEPT_FAILURE -1
 
 typedef enum {
@@ -47,6 +48,7 @@ typedef struct {
     login_info login_info;
     void *currentCommand; //command currently executing
     command_execute_state commandState; //command execution status (tells if you can execute a new command)
+    queueADT mailsToDelete; //queue of mails listed by dele
 } user_data;
 
 

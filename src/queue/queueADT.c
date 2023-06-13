@@ -26,7 +26,7 @@ static tList newNode(elementType elem, tList next) {
 
 void queue(queueADT q, elementType n) {
     tList node = newNode(n, NULL);
-    if(isEmpty(q)) {
+    if(isQueueEmpty(q)) {
         q->first = node;
         q->last = q->first;
         return;
@@ -36,9 +36,8 @@ void queue(queueADT q, elementType n) {
 }
 
 void dequeue(queueADT q, elementType * out) {
-    if(isEmpty(q)) {
-        perror("La cola ya esta vacia");
-        exit(1);
+    if(isQueueEmpty(q)) {
+        return;
     }
     *out = q->first->elem;
     tList aux = q->first;
@@ -46,7 +45,7 @@ void dequeue(queueADT q, elementType * out) {
     free(aux);
 }
 
-int isEmpty(queueADT q) {
+int isQueueEmpty(queueADT q) {
     return q->first == NULL;
 }
 

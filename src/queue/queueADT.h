@@ -1,5 +1,5 @@
-#ifndef PI_QUEUEADT_H
-#define PI_QUEUEADT_H
+#ifndef QUEUEADT_H
+#define QUEUEADT_H
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,7 +18,7 @@ void queue(queueADT q, elementType n);
 void dequeue(queueADT q, elementType * out);
 
 // retorna si la queue esta vacia
-int isEmpty(queueADT q);
+int isQueueEmpty(queueADT q);
 
 // libera la estructura
 void freeQueue(queueADT q);
@@ -31,4 +31,4 @@ int hasNext(queueADT q);
 
 elementType next(queueADT q);
 
-#endif //PI_QUEUEADT_H
+#endif //QUEUEADT_H

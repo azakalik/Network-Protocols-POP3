@@ -258,8 +258,15 @@ int noop(char * unused, char * unused2, user_data * user_data){
     return writeToOutputBuffer(msg, user_data);
 }
 
-int dele(char *, char *, user_data * user_data){
-    
+int dele(char * toDelete, char * unused, user_data * user_data){
+    int toDeleteNumber = atoi(toDelete);
+    queue(user_data->mailsToDelete, toDeleteNumber);
+    return 0;
+}
+
+int rset(char * unused, char * unused2, user_data * user_data){
+    freeQueue(user_data->mailsToDelete);
+    user_data->mailsToDelete = newQueue();
     return 0;
 }
 
@@ -267,8 +274,13 @@ int quit(char * unused, char * unused2, user_data* user_data){
     if(user_data->session_state == TRANSACTION){
         user_data->session_state = UPDATE;
         //execute all functions saved
+        //int mailNo;
+        toBegin(user_data->mailsToDelete);
+        while(hasNext(user_data->mailsToDelete)){
+            //mailNo = next(user_data->mailsToDelete);
+            //todo delete mailNo
+        }
     }
-
     
     return 0;
 }

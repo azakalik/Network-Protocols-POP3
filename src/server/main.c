@@ -13,6 +13,7 @@
 #include "../parsers/commandParser.h"
 #include "../users/users.h"
 #include "../stats/stats.h"
+#include "../queue/queueADT.h"
 
 #define MAX_CONNECTIONS 500
 #define NOT_ALLOCATED -1
@@ -195,6 +196,7 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
             connectedUsers[i].command_list = createList();
             allocatedClient = true;
             user = connectedUsers[i];
+            connectedUsers[i].mailsToDelete = newQueue();
             sendGreeting(&connectedUsers[i]);
         }
     }
