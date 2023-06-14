@@ -12,6 +12,7 @@ static mp3p_states parse_login_character(char c,mp3p_states state){
     if (state == WAITLETTERCOMMAND){
         if ( c == 'u' || c == 'U')
             return WAITSPACE;
+        return INVALIDCOMMAND;
     }
 
     if (state == WAITSPACE){
