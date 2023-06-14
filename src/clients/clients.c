@@ -80,6 +80,7 @@ void initClient(user_data * client, int sockNum){
     client->client_state = WRITING;
     client->command_list = createList();
     client->mailsToDelete = newQueue();
+    client->protocol = POP3;
 }
 
 void closeClient(user_data * client){

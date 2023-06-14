@@ -35,6 +35,11 @@ int main(int argc, char ** argv){
 	if (servSock < 0 )
 		return 1;
 
+
+    int mp3pSock = setupTCPServerSocket("6873");
+    if ( mp3pSock < 0)
+        return 1;
+
     handleProgramTermination();
 
     //-----------------------USER-DATA-INIT---------------------------------
@@ -53,7 +58,7 @@ int main(int argc, char ** argv){
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
-        maxSock = servSock;
+        maxSock = mp3pSock;
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity

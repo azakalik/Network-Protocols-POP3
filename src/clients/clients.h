@@ -36,6 +36,13 @@ typedef struct {
 } login_info;
 
 
+
+typedef enum {
+    POP3,
+    MP3P,
+} protocol_type;
+
+
 typedef struct {
     struct command_list * command_list;
     buffer output_buff;
@@ -49,7 +56,9 @@ typedef struct {
     void *currentCommand; //command currently executing
     command_execute_state commandState; //command execution status (tells if you can execute a new command)
     queueADT mailsToDelete; //queue of mails listed by dele
+    protocol_type protocol;
 } user_data;
+
 
 
 typedef struct {
