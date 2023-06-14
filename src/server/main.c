@@ -36,8 +36,8 @@ int main(int argc, char ** argv){
 		return 1;
 
 
-    int mp3pSock = setupTCPServerSocket("6873");
-    if ( mp3pSock < 0)
+    int udpServSock = setupUDPServerSocket("6873");
+    if ( udpServSock < 0)
         return 1;
 
     handleProgramTermination();
@@ -58,7 +58,8 @@ int main(int argc, char ** argv){
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
-        maxSock = mp3pSock;
+        FD_SET(udpServSock,&readFds);
+        maxSock = udpServSock;
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
@@ -71,6 +72,10 @@ int main(int argc, char ** argv){
         //we check pasive socket for an incoming connection
         if ( FD_ISSET(servSock,&readFds) ){
             acceptConnection(usersData,servSock);
+        }
+
+        if ( FD_ISSET(udpServSock,&readFds)){
+            printf("UDP datagram recieved");
         }
 
         //we handle client`s content
