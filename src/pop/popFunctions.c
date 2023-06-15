@@ -264,19 +264,36 @@ executionStatus noop(char * unused, char * unused2, user_data * user_data){
 
 executionStatus dele(char * toDelete, char * unused, user_data * user_data){ //todo check valid number
     int toDeleteNumber = atoi(toDelete);
-    markMailToDelete(user_data->mailCache, toDeleteNumber);
+    char * msg;
+    if(markMailToDelete(user_data->mailCache, toDeleteNumber) == 0)
+        msg = "+OK message marked to delete\r\n";
+    else
+        msg = "-ERR there was a problem trying to delete your message\r\n";
+
+    writeToOutputBuffer(msg, user_data);
     return 0;
 }
 
 executionStatus rset(char * unused, char * unused2, user_data * user_data){
-    resetToDelete(user_data->mailCache);
+    char * msg;
+    if(resetToDelete(user_data->mailCache) == 0)
+        msg = "+OK messages no longer marked to delete\r\n";
+    else
+        msg = "-ERR problem while trying to execute rset\r\n";
+
+    writeToOutputBuffer(msg, user_data);
     return 0;
 }
 
 executionStatus quit(char * unused, char * unused2, user_data* user_data){
+    char * msg;
     if(user_data->session_state == TRANSACTION){
-        deleteMarkedMails(user_data->mailCache);
+        if(deleteMarkedMails(user_data->mailCache) == 0)
+            msg = "+OK deleting mails and exiting\r\n";
+        else
+            msg = "-ERR there was a problem deleting your emails\r\n";
     }
+    writeToOutputBuffer(msg, user_data);
     user_data->session_state = UPDATE;
     
     return 0;
