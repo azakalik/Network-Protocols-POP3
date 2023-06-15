@@ -33,15 +33,13 @@ static char addrBuffer[MAX_ADDR_BUFFER];
  ** y crear el socket pasivo, para que escuche en cualquier IP, ya sea v4 o v6
  */
 
-
-
-int setupUDPServerSocket(char * service){
+static int setupUDPServerSocket(char * service,int ipVersion){
 	struct addrinfo hints, *res, *p;
     int sockfd;
 
     // Initialize hints
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
+    hints.ai_family = ipVersion;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
     hints.ai_socktype = SOCK_DGRAM;  // UDP socket
     hints.ai_flags = AI_PASSIVE;     // Fill in my IP for me
 	hints.ai_protocol = IPPROTO_UDP;
@@ -91,6 +89,15 @@ int setupUDPServerSocket(char * service){
     return sockfd;
 }
 
+
+
+int setupUDPServerSocketIpv4(char * service){
+    return setupUDPServerSocket(service,AF_INET);
+}
+
+int setupUDPServerSocketIpv6(char * service){
+    return setupUDPServerSocket(service,AF_INET6);
+}
 
 
 

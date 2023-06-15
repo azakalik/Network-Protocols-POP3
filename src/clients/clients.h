@@ -56,6 +56,5 @@ void writeToClient(user_data * client);
 void readFromClient(user_data * client);
 void initClient(user_data * client, int sockNum);
 void closeClient(user_data * usersData);
-int setupUDPServerSocket(char * service);
 
 #endif

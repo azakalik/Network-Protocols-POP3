@@ -17,7 +17,8 @@ args_data * parseArgs(int argc, char ** argv);
 
 // Create, bind, and listen a new TCP server socket
 int setupTCPServerSocket(const char *service);
-int setupUDPServerSocket(char * service);
+int setupUDPServerSocketIpv6(char * service);
+int setupUDPServerSocketIpv4(char * service);
 
 
 void acceptConnection(user_data* connectedUsers,int servSock);
