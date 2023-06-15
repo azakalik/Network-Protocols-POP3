@@ -337,8 +337,10 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
         break;
     case DGRAM_HC_COMMAND:
         dest->commandFunction = historicConnectionsStrategy;
+        break;
     case DGRAM_CC_COMMAND:
         dest->commandFunction = concurrentConnectionsStrategy;
+        break;
     default:
         break;
     }
