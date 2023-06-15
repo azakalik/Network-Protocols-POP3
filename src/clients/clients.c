@@ -6,6 +6,7 @@
 #include <sys/types.h> // send()
 #include <sys/socket.h> // send()
 #include <errno.h>
+#include "../mailsCache/mailsCache.h"
 
 #include "../stats/stats.h"
 
@@ -79,7 +80,6 @@ void initClient(user_data * client, int sockNum){
     client->session_state = AUTHENTICATION;
     client->client_state = WRITING;
     client->command_list = createList();
-    client->mailsToDelete = newQueue();
 }
 
 void closeClient(user_data * client){
@@ -87,7 +87,7 @@ void closeClient(user_data * client){
         return;
 
     destroyList(client->command_list);
-    freeQueue(client->mailsToDelete);
+    freeCache(client->mailCache);
     close(client->socket);
     memset(client,0,sizeof(user_data)); //to mark it as unoccupied
     client->socket = NOT_ALLOCATED;

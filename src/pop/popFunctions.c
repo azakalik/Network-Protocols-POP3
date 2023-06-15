@@ -17,6 +17,7 @@
 #include "stdbool.h"
 #include "../users/users.h"
 #include "popFunctions.h"
+#include "../mailsCache/mailsCache.h"
 
 //----------------FUNCTION-PROTOTYPES--------------------------
 executionStatus checkValidUsername(char * username, char * empty, user_data * data);
@@ -95,13 +96,14 @@ executionStatus checkValidPassword(char * password, char * empty, user_data * da
     char * message;
     if ( validPassword(data->login_info.username,password) ){
         message = "+OK Welcome\r\n";
+        data->mailCache = initCache(data->login_info.username);
+        data->session_state = TRANSACTION;
     } else {
         message = "-ERR Authentication Failed\r\n";
     }
     int len = strlen(message);
     if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
-        data->session_state = TRANSACTION;
         return COMMANDCOMPLETED;
     }
     return INCOMPLETECOMMAND;
@@ -262,25 +264,18 @@ executionStatus noop(char * unused, char * unused2, user_data * user_data){
 
 executionStatus dele(char * toDelete, char * unused, user_data * user_data){ //todo check valid number
     int toDeleteNumber = atoi(toDelete);
-    queue(user_data->mailsToDelete, toDeleteNumber);
+    markMailToDelete(user_data->mailCache, toDeleteNumber);
     return 0;
 }
 
 executionStatus rset(char * unused, char * unused2, user_data * user_data){
-    freeQueue(user_data->mailsToDelete);
-    user_data->mailsToDelete = newQueue();
+    resetToDelete(user_data->mailCache);
     return 0;
 }
 
 executionStatus quit(char * unused, char * unused2, user_data* user_data){
     if(user_data->session_state == TRANSACTION){
-        //execute all functions saved
-        //int mailNo;
-        toBegin(user_data->mailsToDelete);
-        while(hasNext(user_data->mailsToDelete)){
-            //mailNo = next(user_data->mailsToDelete);
-            //todo delete mailNo
-        }
+        deleteMarkedMails(user_data->mailCache);
     }
     user_data->session_state = UPDATE;
     
@@ -386,7 +381,7 @@ static FILE * openFile(char * path, user_data * data){
 //     sprintf(auxBuff,"+OK %lld octets\r\n", (long long)fileSize);
 //     */
     
-//     findFileData(auxBuff,atoi(mailNo),data->login_info.username);
+//     findFileData(auxBuff,atoi(mailNo),user_data->login_info.username);
 //     obtainFilePath(user_data->login_info.username, mailNo, auxBuff);
     
     
@@ -395,7 +390,7 @@ static FILE * openFile(char * path, user_data * data){
 
 //     //ver si hay espacio en el buffer de salida y mandar la rta
 //     if ( writeToOutputBuffer(auxBuff, user_data) < 0 ){
-//         user_data->retrStateData.state = PROCESSING;
+//         user_data->commandState = PROCESSING;
 //         user_data->retrStateData.offset = 0; //es 0 ?
 //         fclose(file);
 //         return 0;

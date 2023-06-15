@@ -68,7 +68,7 @@ int main(int argc, char ** argv){
             acceptConnection(usersData,servSock);
         }
 
-        //we handle client`s content
+        //read and write to clients
         handleClients(&readFds,&writeFds,usersData);
 
     }
@@ -80,9 +80,6 @@ int main(int argc, char ** argv){
 
 
 static void handleProgramTermination(){
-    // registrar sigterm es útil para terminar el programa normalmente.
-    // esto ayuda mucho en herramientas como valgrind.
-    // signal() esta deprecated
     struct sigaction sa;
     sa.sa_handler = sigterm_handler;
     sigemptyset(&sa.sa_mask);
