@@ -25,13 +25,4 @@ typedef struct command_with_state {
 command_with_state * getCommand(char * command_name);
 int sendGreeting(user_data * user);
 
-typedef enum {
-    READINGFILE,
-    READFIRSTCARRIAGE,
-    READFIRSTNEWLINE,
-    READDOT,
-    READSECONDCARRIAGE,
-    READNEWLINE
-} stuffingStates;
-
 #endif

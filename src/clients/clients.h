@@ -3,6 +3,7 @@
 #include "../pop/popStandards.h"
 #include "../buffer/circularBuffer.h"
 #include "../mailsCache/mailsCache.h"
+#include "../pop/fileBuffer.h"
 #define ACCEPT_FAILURE -1
 
 typedef enum {
@@ -11,12 +12,8 @@ typedef enum {
 } command_execute_state;
 
 typedef struct {
-    int amountSkippedFiles;
-    int requestedMail;
-} list_state_data;
-
-typedef struct {
     long offset;
+    file_buffer fileReadingBuffer;
 } retr_state_data;
 
 typedef enum {
@@ -35,28 +32,17 @@ typedef struct {
     login_status login_status;
 } login_info;
 
-
-
-typedef enum {
-    POP3,
-    MP3P,
-} protocol_type;
-
-
 typedef struct {
     struct command_list * command_list;
     buffer output_buff;
     pop_state session_state;
     client_state client_state;
     int socket;
-    buffer fileReadingBuffer;
-    list_state_data listStateData;
     retr_state_data retrStateData;
     login_info login_info;
     void *currentCommand; //command currently executing
     command_execute_state commandState; //command execution status (tells if you can execute a new command)
     mailCache * mailCache;
-    protocol_type protocol;
 } user_data;
 
 
