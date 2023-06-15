@@ -35,7 +35,7 @@ void writeToClient(user_data * client){
         }
     }
 
-    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list)){}
+    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list))
         client->client_state = READING;
     return;
 }
