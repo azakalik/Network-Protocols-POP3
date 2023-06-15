@@ -28,5 +28,4 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest);
 
 #define DGRAMSUCCESS 0
 #define DGRAMERROR -1
-
 #endif
