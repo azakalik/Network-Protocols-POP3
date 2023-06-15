@@ -32,9 +32,15 @@ typedef enum {
     READCOMMAND,
     READB,
     READBT,
+    READH,
+    READC,
+    READHC,
+    READCC,
     READBR,
     DGRAM_BT_COMMAND,
     DGRAM_BR_COMMAND,
+    DGRAM_HC_COMMAND,
+    DGRAM_CC_COMMAND,
     DGRAMERR,
 } mp3p_states;
 
@@ -51,16 +57,53 @@ typedef enum{
 
 
 
+#define SERVERSTATSMESSAGE "MP3P V1.0 200\n%s\n%ld"
+#define SERVERERRORMESSAGE "MP3P V1.0 %d\n%s\n"
 
+//error type 100, bad request
+
+static int errorDatagramMessage(char * dgramOutput,mp3p_headers_data * data, int error){
+    return sprintf(dgramOutput,SERVERERRORMESSAGE,error,data->uniqueID) + 1;//we count null terminated
+}
+
+//error type 100, malformed datagram
+static int malformedDatagramStrategy(mp3p_headers_data *data,char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,data,100);
+}
+
+//error type 101, unauthorized
+static int unauthorizedStrategy(mp3p_headers_data *data, char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,data,101);
+}
+//error type 102, wrong protocol version
+static int wrongProtocolVersionStrategy(mp3p_headers_data * data, char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,data,102);
+}
+
+static int outputStatisticsMessage(char * dgramOutput, mp3p_headers_data * data ,uint64_t numberData){
+    return sprintf(dgramOutput,SERVERSTATSMESSAGE,data->uniqueID,numberData) + 1;//consider null terminated
+}
 
 static int bytesTransferedStrategy(mp3p_headers_data * args, char * dgramOutput){
     uint64_t transferedBytes = getBytesRecievedFromStats();
-    return sprintf(dgramOutput,"MP3P V1.0\n%s\n%ld",args->uniqueID,transferedBytes) + 1;//consider null terminated
+    return outputStatisticsMessage(dgramOutput,args,transferedBytes);
 }
 
 static int bytesRecievedStrategy(mp3p_headers_data * args, char * dgramOutput){
     uint64_t transferedBytes = getBytesRecievedFromStats();
-    return sprintf(dgramOutput,"%s V1.0\n%s\n%ld",args->version,args->uniqueID,transferedBytes) + 1;//consider null terminated
+    return outputStatisticsMessage(dgramOutput,args,transferedBytes);
+}
+
+
+static int historicConnectionsStrategy(mp3p_headers_data * args,char * dgramOutput){
+    uint64_t historicConnections = getHistoricConnectionsFromStats();
+    return outputStatisticsMessage(dgramOutput,args,historicConnections);
+}
+
+
+static int concurrentConnectionsStrategy(mp3p_headers_data * args, char * dgramOutput){
+    uint64_t concurrentConnections = getConcurrentConnectionsFromStats();
+    return outputStatisticsMessage(dgramOutput,args,concurrentConnections);
 }
 
 
@@ -166,6 +209,24 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
     if (prevState == READTHIRDNEWLINE){
         if (c == 'B'){
             return READB;
+        } else if ( c == 'H'){
+            return READH;
+        } else if ( c == 'C'){
+            return READC;
+        }
+        return DGRAMERR;
+    }
+
+    if ( prevState == READC){
+        if (c == 'C'){
+            return READCC;
+        }
+        return DGRAMERR;
+    }
+
+    if ( prevState == READH){
+        if (c == 'C'){
+            return READHC;
         }
         return DGRAMERR;
     }
@@ -194,9 +255,21 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
         return DGRAMERR;
     }
 
+    if ( prevState == READHC){
+        if (c == '\0'){
+            return DGRAM_HC_COMMAND;
+        }
+        return DGRAM_CC_COMMAND;
+    }
+
+    if (prevState == READCC){
+        if (c == '\0'){
+            return DGRAM_CC_COMMAND;
+        }
+        return DGRAMERR;
+    }
+
     return DGRAMERR;
-
-
 
 }
 
@@ -232,7 +305,7 @@ void copyDgramData(char * dgram, mp3p_data * dest){
     //we skip newline
     currentDgramPosition++;
     // we copy the packet id
-    currentDgramPosition = copyLine(currentDgramPosition,dest->headers.uniqueID);
+    copyLine(currentDgramPosition,dest->headers.uniqueID);
 
 }
 
@@ -240,17 +313,17 @@ void copyDgramData(char * dgram, mp3p_data * dest){
 
 int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     mp3p_states currentState = START;
-    for ( int i = 0; i < dgramLen ; i++){
+    for ( int i = 0; i < dgramLen && currentState != DGRAMERR; i++){
         currentState = parseMp3pCharacter(dgram[i],currentState);
-        if ( currentState == DGRAMERR)
-            return DGRAMERROR;
     }
 
-    if ( currentState != DGRAM_BR_COMMAND && currentState != DGRAM_BT_COMMAND ){
+    if ( currentState == DGRAMERR ){
+        dest->commandFunction = malformedDatagramStrategy;
         return DGRAMERROR;
     }
 
 
+    //datagram is well-formed, we can copy the data
     copyDgramData(dgram,dest);
 
 
@@ -262,12 +335,16 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     case DGRAM_BR_COMMAND:
         dest->commandFunction = bytesRecievedStrategy;
         break;
+    case DGRAM_HC_COMMAND:
+        dest->commandFunction = historicConnectionsStrategy;
+    case DGRAM_CC_COMMAND:
+        dest->commandFunction = concurrentConnectionsStrategy;
     default:
         break;
     }
-    
 
-    return 0;
+
+    return DGRAMSUCCESS;
 }
 
 

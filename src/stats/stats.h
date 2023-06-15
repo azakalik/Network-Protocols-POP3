@@ -7,7 +7,7 @@ typedef struct {
     uint64_t historicConnections;
     uint64_t bytesTransfered;
     uint64_t bytesRecieved;
-    int concurrentConnections;
+    uint64_t concurrentConnections;
 } stats_singleton;
 
 
@@ -17,7 +17,7 @@ void removeConcurrentConnectionFromStats();
 void addRecievedBytesToStats(int bytes);
 
 uint64_t getHistoricConnectionsFromStats();
-int getConcurrentConnectionsFromStats();
+uint64_t getConcurrentConnectionsFromStats();
 uint64_t getBytesTransferedFromStats();
 uint64_t getBytesRecievedFromStats();
 

@@ -52,7 +52,7 @@ uint64_t getHistoricConnectionsFromStats(){
     return stats->historicConnections;
 }
 
-int getConcurrentConnectionsFromStats(){
+uint64_t getConcurrentConnectionsFromStats(){
     stats_singleton * stats = getStatsInstance();
     return stats->concurrentConnections;
 }
