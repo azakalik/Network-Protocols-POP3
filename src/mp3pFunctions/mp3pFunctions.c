@@ -3,8 +3,10 @@
 #include <stdbool.h>
 #include "../stats/stats.h"
 #include <stdio.h>
-
-#define AUTHTOKEN "aguanteProtos"
+#include <ctype.h>
+#define MAXDATAGRAMLENGTH 8096
+#define VERSION "V1.0"
+#define AUTHKEY "AGUANTEPROTOS"
 
 
 typedef enum {
@@ -42,43 +44,47 @@ typedef enum {
     DGRAM_HC_COMMAND,
     DGRAM_CC_COMMAND,
     DGRAMERR,
+    INVALID_VERSION,
+    INVALID_AUTHKEY,
 } mp3p_states;
 
 
 
+#define UNAUTHORIZED 100
+#define WRONG_PROTOCOL_VERSION 101
+#define INVALID_METHOD 102
 
 
-
-typedef enum{
-    READINGVERSION,
-    READINGAUTH,
-    READINGPASSWORD,
-} proccess_dgram_states;
-
+/*
+ORDEN:
+header
+identifDgram
+clave
+contenido
+*/
 
 
 #define SERVERSTATSMESSAGE "MP3P V1.0 200\n%s\n%ld"
 #define SERVERERRORMESSAGE "MP3P V1.0 %d\n%s\n"
 
-//error type 100, bad request
 
-static int errorDatagramMessage(char * dgramOutput,mp3p_headers_data * data, int error){
+#define IDLENGTH 32
+
+
+static inline int errorDatagramMessage(char * dgramOutput,mp3p_headers_data * data, int error){
     return sprintf(dgramOutput,SERVERERRORMESSAGE,error,data->uniqueID) + 1;//we count null terminated
 }
 
-//error type 100, malformed datagram
-static int malformedDatagramStrategy(mp3p_headers_data *data,char * dgramOutput){
-    return errorDatagramMessage(dgramOutput,data,100);
+
+//error type 100, unauthorized
+static int unauthorizedStrategy(mp3p_headers_data *data, char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,data,UNAUTHORIZED);
+}
+//error type 101, wrong protocol version
+static int versionMismatchStrategy(mp3p_headers_data * data, char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,data,WRONG_PROTOCOL_VERSION);
 }
 
-//error type 101, unauthorized
-static int unauthorizedStrategy(mp3p_headers_data *data, char * dgramOutput){
-    return errorDatagramMessage(dgramOutput,data,101);
-}
-//error type 102, wrong protocol version
-static int wrongProtocolVersionStrategy(mp3p_headers_data * data, char * dgramOutput){
-    return errorDatagramMessage(dgramOutput,data,102);
-}
 
 static int outputStatisticsMessage(char * dgramOutput, mp3p_headers_data * data ,uint64_t numberData){
     return sprintf(dgramOutput,SERVERSTATSMESSAGE,data->uniqueID,numberData) + 1;//consider null terminated
@@ -110,7 +116,7 @@ static int concurrentConnectionsStrategy(mp3p_headers_data * args, char * dgramO
 
 
 
-static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
+static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * length){
     if ( prevState == START){
         if (c == 'M')
             return READM;
@@ -179,17 +185,22 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
     }
 
     if (prevState == READFIRSTNEWLINE){
-        if (c != '\n'){
+        if (isalnum(c)){
+            *length += 1;
             return READCLIENTDGRAMID;
         }
         return DGRAMERR;
     }
 
     if (prevState == READCLIENTDGRAMID){
-        if (c == '\n'){
+        if (c == '\n' && *length == IDLENGTH){
             return READSECONDNEWLINE;
         }
-        return READCLIENTDGRAMID;
+        if ( *length < IDLENGTH && isalnum(c)){
+            *length += 1;
+            return READCLIENTDGRAMID;
+        }
+        return DGRAMERR;
     }
 
 
@@ -268,9 +279,17 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
         }
         return DGRAMERR;
     }
-
     return DGRAMERR;
 
+}
+
+
+static inline bool checkVersion(char * version){
+    return strcmp(version,VERSION) == 0;
+}
+
+static inline bool checkAuthentication(char * auth){
+    return strcmp(auth,AUTHKEY) == 0;
 }
 
 //returns end of line, more efficient
@@ -300,12 +319,12 @@ void copyDgramData(char * dgram, mp3p_data * dest){
     char * currentDgramPosition = copyVersion(dgram,dest->headers.version);
     //we skip the newline
     currentDgramPosition++;
-    //we copy the password
-    currentDgramPosition = copyLine(currentDgramPosition,dest->headers.authorization);
+    // we copy the packet id
+    currentDgramPosition = copyLine(currentDgramPosition,dest->headers.uniqueID);
     //we skip newline
     currentDgramPosition++;
-    // we copy the packet id
-    copyLine(currentDgramPosition,dest->headers.uniqueID);
+    //we copy the password
+    copyLine(currentDgramPosition,dest->headers.authorization);
 
 }
 
@@ -313,18 +332,27 @@ void copyDgramData(char * dgram, mp3p_data * dest){
 
 int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     mp3p_states currentState = START;
-    for ( int i = 0; i < dgramLen && currentState != DGRAMERR; i++){
-        currentState = parseMp3pCharacter(dgram[i],currentState);
+    int idLength = 0;
+    int i;
+    for ( i = 0; i < dgramLen && i < MAXDATAGRAMLENGTH; i++){
+        currentState = parseMp3pCharacter(dgram[i],currentState,&idLength);
+        if ( currentState == DGRAMERR ){
+            break;
+        } 
     }
 
-    if ( currentState == DGRAMERR ){
-        dest->commandFunction = malformedDatagramStrategy;
+    if (i > MAXDATAGRAMLENGTH || currentState == DGRAMERR){
         return DGRAMERROR;
     }
 
-
     //datagram is well-formed, we can copy the data
     copyDgramData(dgram,dest);
+
+    if (!checkVersion(dest->headers.version)){
+        currentState = INVALID_VERSION;
+    } else if (!checkAuthentication(dest->headers.authorization)){
+        currentState = INVALID_AUTHKEY;
+    }
 
 
     switch (currentState)
@@ -341,13 +369,41 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     case DGRAM_CC_COMMAND:
         dest->commandFunction = concurrentConnectionsStrategy;
         break;
+    case INVALID_AUTHKEY:
+        dest->commandFunction = unauthorizedStrategy;
+        break;
+    case INVALID_VERSION:
+        dest->commandFunction = versionMismatchStrategy;
     default:
         break;
     }
 
-
     return DGRAMSUCCESS;
 }
+
+
+/*
+cliente-->servidor
+MP3P V1.0\n
+IDENTIFICADOR_DATAGRAMA\n
+AUTORIZACION\n
+COMMANDO'\0'
+*/
+
+
+/*
+servidor-->cliente
+MP3P V1.0 2xx\n
+IDENTIFICADOR_DATAGRAMA\n
+DATOS
+*/
+
+/*
+servidor-->cliente
+MP3P V1.0 1xx\n
+IDENTIFICADOR_DATAGRAMA\n
+*/
+
 
 
 /*
