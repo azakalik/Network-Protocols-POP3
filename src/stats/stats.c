@@ -45,3 +45,24 @@ void removeConcurrentConnectionFromStats(){
     stats_singleton * stats = getStatsInstance();
     stats->concurrentConnections -= 1;
 }
+
+
+uint64_t getHistoricConnectionsFromStats(){
+    stats_singleton *stats = getStatsInstance();
+    return stats->historicConnections;
+}
+
+int getConcurrentConnectionsFromStats(){
+    stats_singleton * stats = getStatsInstance();
+    return stats->concurrentConnections;
+}
+
+uint64_t getBytesTransferedFromStats(){
+    stats_singleton * stats = getStatsInstance();
+    return stats->bytesTransfered;
+}
+
+uint64_t getBytesRecievedFromStats(){
+    stats_singleton * stats = getStatsInstance();
+    return stats->bytesRecieved;
+}

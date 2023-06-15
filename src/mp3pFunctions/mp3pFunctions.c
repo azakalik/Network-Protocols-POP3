@@ -1,5 +1,10 @@
-#include "mp3pDatagramParser.h"
+#include "mp3pFunctions.h"
 #include <string.h>
+#include <stdbool.h>
+#include "../stats/stats.h"
+#include <stdio.h>
+
+#define AUTHTOKEN "aguanteProtos"
 
 
 typedef enum {
@@ -28,11 +33,35 @@ typedef enum {
     READB,
     READBT,
     READBR,
-    DGRAMOK,
+    DGRAM_BT_COMMAND,
+    DGRAM_BR_COMMAND,
     DGRAMERR,
-
 } mp3p_states;
 
+
+
+
+
+
+typedef enum{
+    READINGVERSION,
+    READINGAUTH,
+    READINGPASSWORD,
+} proccess_dgram_states;
+
+
+
+
+
+static int bytesTransferedStrategy(mp3p_headers_data * args, char * dgramOutput){
+    uint64_t transferedBytes = getBytesRecievedFromStats();
+    return sprintf(dgramOutput,"MP3P V1.0\n%s\n%ld",args->uniqueID,transferedBytes) + 1;//consider null terminated
+}
+
+static int bytesRecievedStrategy(mp3p_headers_data * args, char * dgramOutput){
+    uint64_t transferedBytes = getBytesRecievedFromStats();
+    return sprintf(dgramOutput,"%s V1.0\n%s\n%ld",args->version,args->uniqueID,transferedBytes) + 1;//consider null terminated
+}
 
 
 
@@ -151,9 +180,16 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
         return DGRAMERR;
     }
 
-    if (prevState == READBT || prevState == READBR){
+    if (prevState == READBT){
         if ( c == '\0'){
-            return DGRAMOK;
+            return DGRAM_BT_COMMAND;
+        }
+        return DGRAMERR;
+    }
+
+    if ( prevState == READBR){
+        if (c == '\0'){
+            return DGRAM_BR_COMMAND;
         }
         return DGRAMERR;
     }
@@ -161,6 +197,42 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState){
     return DGRAMERR;
 
 
+
+}
+
+//returns end of line, more efficient
+char * copyVersion(char * dgram, char * dest){
+    char * versionPtr = strchr(dgram,'V');
+    while (*versionPtr != '\n')
+    {
+        *dest++ = *versionPtr++;
+    }
+
+    *dest = 0;
+
+    return versionPtr;
+    
+}
+
+char * copyLine(char * line, char * dest){
+    while ( *line != '\n'){
+        *dest++ = *line++;
+    }
+    *dest = 0;
+    return line;
+}
+
+
+void copyDgramData(char * dgram, mp3p_data * dest){
+    char * currentDgramPosition = copyVersion(dgram,dest->headers.version);
+    //we skip the newline
+    currentDgramPosition++;
+    //we copy the password
+    currentDgramPosition = copyLine(currentDgramPosition,dest->headers.authorization);
+    //we skip newline
+    currentDgramPosition++;
+    // we copy the packet id
+    currentDgramPosition = copyLine(currentDgramPosition,dest->headers.uniqueID);
 
 }
 
@@ -174,9 +246,26 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
             return DGRAMERROR;
     }
 
-    if ( currentState != DGRAMOK){
+    if ( currentState != DGRAM_BR_COMMAND && currentState != DGRAM_BT_COMMAND ){
         return DGRAMERROR;
     }
+
+
+    copyDgramData(dgram,dest);
+
+
+    switch (currentState)
+    {
+    case DGRAM_BT_COMMAND:
+        dest->commandFunction = bytesTransferedStrategy;
+        break;
+    case DGRAM_BR_COMMAND:
+        dest->commandFunction = bytesRecievedStrategy;
+        break;
+    default:
+        break;
+    }
+    
 
     return 0;
 }
@@ -220,11 +309,8 @@ int parseDatagram(char * datagram){
 */
 
 
-
-
 // recibir como argumento la clave del usuario.
 // >BT
 // >BR
 // >CC
 // >HC
-// 

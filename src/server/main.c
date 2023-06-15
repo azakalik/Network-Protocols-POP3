@@ -75,7 +75,7 @@ int main(int argc, char ** argv){
         }
 
         if ( FD_ISSET(udpServSock,&readFds)){
-            printf("UDP datagram recieved");
+            handleUdpRequest(udpServSock);
         }
 
         //read and write to clients
@@ -87,6 +87,9 @@ int main(int argc, char ** argv){
     return 0;
 
 }
+
+
+
 
 
 static void handleProgramTermination(){

@@ -25,4 +25,5 @@ void handleClients(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 void handleSelectActivityError();
 void closeAllClients(user_data usersData[]);
+void handleUdpRequest(int udpSocket);
 #endif 

@@ -16,4 +16,9 @@ void addConcurrentConnectionToStats();
 void removeConcurrentConnectionFromStats();
 void addRecievedBytesToStats(int bytes);
 
+uint64_t getHistoricConnectionsFromStats();
+int getConcurrentConnectionsFromStats();
+uint64_t getBytesTransferedFromStats();
+uint64_t getBytesRecievedFromStats();
+
 #endif

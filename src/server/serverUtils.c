@@ -17,11 +17,13 @@
 #include "../stats/stats.h"
 #include <signal.h>
 #include "../parsers/commandParser.h"
+#include "../mp3pFunctions/mp3pFunctions.h"
 
 
 #define MAXPENDING 5 // Maximum outstanding connection requests
 #define BUFSIZE 256
 #define MAX_ADDR_BUFFER 128
+#define MAX_UDP_REQUEST_SIZE 2048
 
 
 
@@ -39,7 +41,7 @@ int setupUDPServerSocket(char * service){
 
     // Initialize hints
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET6;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
+    hints.ai_family = AF_UNSPEC;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
     hints.ai_socktype = SOCK_DGRAM;  // UDP socket
     hints.ai_flags = AI_PASSIVE;     // Fill in my IP for me
 	hints.ai_protocol = IPPROTO_UDP;
@@ -363,6 +365,35 @@ void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd
     }
     *maxNumberFd = maxFd;
 }
+
+
+void handleUdpRequest(int udpSocket){
+    char buffer[MAX_UDP_REQUEST_SIZE];
+    struct sockaddr_in clientAddress;
+    socklen_t clientAddressLength = sizeof(clientAddress);
+    int bytesRead = recvfrom(udpSocket,buffer,MAX_UDP_REQUEST_SIZE,0, (struct sockaddr *)&clientAddress,&clientAddressLength);
+    if ( bytesRead < 0){
+        log(ERROR,"%s","recvfrom failed to recieve UDP datagram");
+        return;
+    }
+
+    mp3p_data datagramData;
+    int datagramStatus = parseDatagram(buffer,bytesRead,&datagramData);
+    if ( datagramStatus == ERROR){
+        log(ERROR,"%s","error parsing datagram");
+        //return malformed datagram
+        return;
+    }
+
+    int messageLength = datagramData.commandFunction(&datagramData.headers, buffer);
+    //TODO manejar errores aca
+    int sendBytes = sendto(udpSocket,buffer,messageLength,0,(struct sockaddr *)&clientAddress,clientAddressLength);
+    if ( sendBytes < 0){
+        log(ERROR,"%s","Error sending dgram");
+    }
+
+}
+
 
 
 void handleSelectActivityError(){
