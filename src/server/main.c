@@ -35,6 +35,11 @@ int main(int argc, char ** argv){
 	if (servSock < 0 )
 		return 1;
 
+
+    int udpServSock = setupUDPServerSocket("6873");
+    if ( udpServSock < 0)
+        return 1;
+
     handleProgramTermination();
 
     //-----------------------USER-DATA-INIT---------------------------------
@@ -53,7 +58,8 @@ int main(int argc, char ** argv){
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
-        maxSock = servSock;
+        FD_SET(udpServSock,&readFds);
+        maxSock = udpServSock;
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
@@ -66,6 +72,10 @@ int main(int argc, char ** argv){
         //we check pasive socket for an incoming connection
         if ( FD_ISSET(servSock,&readFds) ){
             acceptConnection(usersData,servSock);
+        }
+
+        if ( FD_ISSET(udpServSock,&readFds)){
+            printf("UDP datagram recieved");
         }
 
         //read and write to clients

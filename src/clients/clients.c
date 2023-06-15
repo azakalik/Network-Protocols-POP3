@@ -80,6 +80,7 @@ void initClient(user_data * client, int sockNum){
     client->session_state = AUTHENTICATION;
     client->client_state = WRITING;
     client->command_list = createList();
+    client->protocol = POP3;
 }
 
 void closeClient(user_data * client){

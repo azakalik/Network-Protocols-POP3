@@ -30,6 +30,68 @@ static char addrBuffer[MAX_ADDR_BUFFER];
  ** Se encarga de resolver el número de puerto para service (puede ser un string con el numero o el nombre del servicio)
  ** y crear el socket pasivo, para que escuche en cualquier IP, ya sea v4 o v6
  */
+
+
+
+int setupUDPServerSocket(char * service){
+	struct addrinfo hints, *res, *p;
+    int sockfd;
+
+    // Initialize hints
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET6;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
+    hints.ai_socktype = SOCK_DGRAM;  // UDP socket
+    hints.ai_flags = AI_PASSIVE;     // Fill in my IP for me
+	hints.ai_protocol = IPPROTO_UDP;
+
+    // Get address information
+    int status = getaddrinfo(NULL, service, &hints, &res);
+    if (status != 0) {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        return 1;
+    }
+
+    // Loop through all the results and bind to the first valid address
+    for (p = res; p != NULL; p = p->ai_next) {
+        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (sockfd == -1) {
+            perror("socket");
+            continue;
+        }
+
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("bind");
+            continue;
+        }
+
+        break;  // Successfully bound
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "Failed to bind socket\n");
+        return 1;
+    }
+
+    // Print IP version of the bound socket
+    if (p->ai_family == AF_INET) {
+        printf("IPv4 UDP socket bound\n");
+    } else if (p->ai_family == AF_INET6) {
+        printf("IPv6 UDP socket bound\n");
+    } else {
+        printf("Unknown socket bound\n");
+    }
+
+    freeaddrinfo(res);
+
+    // Use the socket...
+
+    return sockfd;
+}
+
+
+
+
 int setupTCPServerSocket(const char *service) {
 	// Construct the server address structure
 	struct addrinfo addrCriteria;                   // Criteria for address match
