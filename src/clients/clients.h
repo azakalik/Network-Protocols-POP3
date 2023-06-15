@@ -21,15 +21,8 @@ typedef enum {
     WRITING, //the server is writing to the client
 } client_state;
 
-typedef enum {
-    ANONYMOUS, //user hasn't inserted his username yet
-    KNOWN_USERNAME, //user inserted his username but not the password yet (or an invalid password)
-    LOGGED_IN, //user has inserted correct username and password combination
-} login_status;
-
 typedef struct {
     char username[MAXARGSIZE+1];
-    login_status login_status;
 } login_info;
 
 typedef struct {
