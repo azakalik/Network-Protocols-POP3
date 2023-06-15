@@ -85,7 +85,6 @@ static int versionMismatchStrategy(mp3p_headers_data * data, char * dgramOutput)
     return errorDatagramMessage(dgramOutput,data,WRONG_PROTOCOL_VERSION);
 }
 
-
 static int outputStatisticsMessage(char * dgramOutput, mp3p_headers_data * data ,uint64_t numberData){
     return sprintf(dgramOutput,SERVERSTATSMESSAGE,data->uniqueID,numberData) + 1;//consider null terminated
 }

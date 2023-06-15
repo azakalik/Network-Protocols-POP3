@@ -379,16 +379,16 @@ void handleUdpRequest(int udpSocket){
     struct sockaddr_in clientAddress;
     socklen_t clientAddressLength = sizeof(clientAddress);
     int bytesRead = recvfrom(udpSocket,buffer,MAX_UDP_REQUEST_SIZE,0, (struct sockaddr *)&clientAddress,&clientAddressLength);
-    if ( bytesRead < 0){
+    if ( bytesRead <= 0){
         log(ERROR,"%s","recvfrom failed to recieve UDP datagram");
         return;
     }
+    addRecievedBytesToStats(bytesRead);
 
     mp3p_data datagramData;
     int datagramStatus = parseDatagram(buffer,bytesRead,&datagramData);
-    if ( datagramStatus == ERROR){
-        log(ERROR,"%s","error parsing datagram");
-        //return malformed datagram
+    if ( datagramStatus == DGRAMERROR){
+        log(ERROR,"%s","discarding invalid datagram");
         return;
     }
 
@@ -397,7 +397,9 @@ void handleUdpRequest(int udpSocket){
     int sendBytes = sendto(udpSocket,buffer,messageLength,0,(struct sockaddr *)&clientAddress,clientAddressLength);
     if ( sendBytes < 0){
         log(ERROR,"%s","Error sending dgram");
+        return;
     }
+    addTransferedBytesToStats(sendBytes);
 
 }
 
