@@ -78,12 +78,7 @@ int writeToOutputBuffer(char * buffer, user_data* data ) { //todo use it in ever
 //------------------------USER FUNCTION------------------------------------------------------------------------
 
 executionStatus checkValidUsername(char * username, char * empty, user_data * data){
-    char * message;
-    if ( validUsername(username) ){
-        message = "+OK User accepted\r\n";
-    } else {
-        message = "-ERR Invalid username\r\n";
-    }
+    char * message = "+OK User received. We are not allowed to tell if it is valid due to security reasons\r\n";
     int len = strlen(message);
     if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
