@@ -4,6 +4,7 @@
 #define GREETINGMESSAGE "+OK Pop3 Server Ready\r\n"
 #define WRITE_ERROR -1
 #define WRITE_SUCCESS 0
+#define STATBUFFERSIZE 32
 
 
 #include <dirent.h>
@@ -27,6 +28,7 @@ executionStatus quit(char *, char *, user_data * user_data);
 executionStatus noop(char *, char *, user_data * user_data);
 executionStatus dele(char * toDelete, char *, user_data * user_data);
 executionStatus rset(char *, char *, user_data * user_data);
+executionStatus _stat(char *, char *, user_data * user_data);
 
 
 //---------------- LIST-OF-COMMANDS----------------------------
@@ -36,7 +38,7 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"TOP",  emptyFunction,         TRANSACTION},
     {"USER", checkValidUsername,    AUTHENTICATION},
     {"PASS", checkValidPassword,    AUTHENTICATION},
-    {"STAT", emptyFunction,         TRANSACTION},
+    {"STAT", _stat,                  TRANSACTION},
     {"LIST", emptyFunction,         TRANSACTION},
     {"RETR", emptyFunction,         TRANSACTION},
     {"DELE", dele,                  TRANSACTION},
@@ -296,6 +298,13 @@ executionStatus quit(char * unused, char * unused2, user_data* user_data){
     writeToOutputBuffer(msg, user_data);
     user_data->session_state = UPDATE;
     
+    return 0;
+}
+
+executionStatus _stat(char * unused, char * unused2, user_data * user_data){
+    char msg[STATBUFFERSIZE];
+    snprintf(msg, STATBUFFERSIZE, "+OK %d %ld\r\n", getAmountOfMails(user_data->mailCache), getSizeOfMails(user_data->mailCache));
+    writeToOutputBuffer(msg, user_data);
     return 0;
 }
 
