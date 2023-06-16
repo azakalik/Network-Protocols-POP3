@@ -301,7 +301,7 @@ void closeAllClients(user_data usersData[]){
 
 //attempts to execute the oldest command sent by a client
 void executeFirstCommand(struct command_list * list, user_data * user_data){
-    if(availableCommands(list)){
+    if(availableCommands(list) || user_data->commandState == PROCESSING){
         char * message;
 
         if(user_data->commandState == AVAILABLE){
@@ -322,11 +322,11 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
             user_data->currentCommand = (void *)command;
         }
         command_to_execute * command = (command_to_execute *)user_data->currentCommand;
-        int functionStatus = command->callback.execute_command(command->arg1, command->arg2, user_data);
-        if (functionStatus == COMMANDCOMPLETED){
+        executionStatus functionStatus = command->callback.execute_command(command->arg1, command->arg2, user_data);
+        if (functionStatus == FINISHED){
             user_data->commandState = AVAILABLE;
             free(user_data->currentCommand);
-        } else if (functionStatus == INCOMPLETECOMMAND) {
+        } else if (functionStatus == NOT_FINISHED) {
             user_data->commandState = PROCESSING;
 		} else {
             log(ERROR,"%s","An error occured while executing a command");

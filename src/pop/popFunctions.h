@@ -4,12 +4,6 @@
 #include "popStandards.h"
 #include "../clients/clients.h"
 
-typedef enum executionStatus {
-    COMMANDCOMPLETED,
-    INCOMPLETECOMMAND,
-    COMMANDERROR,
-} executionStatus;
-
 typedef executionStatus (*command_handler)(char * arg1, char * arg2, user_data * user_data); //pop functions declaration
 
 typedef struct command_with_state {

@@ -1,6 +1,5 @@
 #include "mailsCache.h"
 
-#define ERRORCODE -1
 #define BASEPATH "../mails/"
 #define MAILDIRPATHSIZE 256
 #define MAXFILEPATHSIZE MAXFILENAME+MAILDIRPATHSIZE
@@ -73,7 +72,7 @@ void freeCache(mailCache * mailCache){
 
 int openMail(mailCache * mailCache, int mailNo){
     if(mailCache == NULL || !validMailNo(mailCache, mailNo))
-        return ERRORCODE;
+        return FAILED;
 
     closeMail(mailCache); //if another mail (fd) was open, we close it first
 
@@ -81,27 +80,36 @@ int openMail(mailCache * mailCache, int mailNo){
     getPathForMail(mailCache, path, mailNo);
     FILE * file = fopen(path, "r"); //opens mail in read mode
     if(file == NULL){
-        log(FATAL,"ERRORCODE opening file: %s", path);
-        return ERRORCODE;
+        log(FATAL,"FAILED opening file: %s", path);
+        return FAILED;
     }
     mailCache->retrState.currentMail = file;
 
     return 0;
 }
 
-int getNCharsFromMail(mailCache * mailCache, int characters, char * buffer){
+executionStatus getNCharsFromMail(mailCache * mailCache, int characters, char * buffer){
     if(mailCache == NULL || mailCache->retrState.currentMail == NULL || buffer == NULL || characters <= 0){
         if(buffer != NULL)
             buffer[0] = 0;
-        return ERRORCODE;
+        return FAILED;
     }
     
-    return fread(buffer, 1, characters, mailCache->retrState.currentMail);
+    int charactersRead = fread(buffer, 1, characters, mailCache->retrState.currentMail);
+    if(charactersRead > 0)
+        buffer[charactersRead] = 0;
+
+    if(feof(mailCache->retrState.currentMail))
+        return FINISHED;
+    else if(ferror(mailCache->retrState.currentMail))
+        return FAILED;
+    else
+        return NOT_FINISHED;
 }
 
 int closeMail(mailCache * mailCache){
     if(mailCache == NULL || mailCache->retrState.currentMail == NULL)
-        return ERRORCODE;
+        return FAILED;
 
     fclose(mailCache->retrState.currentMail);
     mailCache->retrState.currentMail = NULL;
@@ -111,20 +119,20 @@ int closeMail(mailCache * mailCache){
 
 int toBegin(mailCache * mailCache){
     if(mailCache == NULL)
-        return ERRORCODE;
+        return FAILED;
     mailCache->listState.iterator = 0;
     return 0;
 }
 
 int hasNext(mailCache * mailCache){
     if(mailCache == NULL)
-        return ERRORCODE;
+        return FAILED;
     return mailCache->listState.iterator < mailCache->mailCount;
 }
 
 int next(mailCache * mailCache, mailInfo * mailInfo){
     if (mailCache == NULL || mailInfo == NULL || !hasNext(mailCache))
-        return ERRORCODE;
+        return FAILED;
 
     mail mail = mailCache->mails[mailCache->listState.iterator];
     mailCache->listState.iterator += 1;
@@ -139,7 +147,7 @@ int next(mailCache * mailCache, mailInfo * mailInfo){
 
 int getMailInfo(mailCache * mailCache, int mailNo, mailInfo * mailInfo){
     if(mailCache == NULL || mailInfo == NULL || !validMailNo(mailCache, mailNo))
-        return ERRORCODE;
+        return FAILED;
 
     mail mail = mailCache->mails[mailNo-1];
 
@@ -151,7 +159,7 @@ int getMailInfo(mailCache * mailCache, int mailNo, mailInfo * mailInfo){
 
 int markMailToDelete(mailCache * mailCache, int mailNo){
     if(mailCache == NULL || !validMailNo(mailCache, mailNo))
-        return ERRORCODE;
+        return FAILED;
 
     mailCache->mails[mailNo-1].toDelete = true;
     mailCache->markedToDelete++;
@@ -160,7 +168,7 @@ int markMailToDelete(mailCache * mailCache, int mailNo){
 
 int resetToDelete(mailCache * mailCache){
     if(mailCache == NULL)
-        return ERRORCODE;
+        return FAILED;
 
     for (int mailNo = 0; mailNo < mailCache->mailCount; mailNo++)
     {
@@ -172,7 +180,7 @@ int resetToDelete(mailCache * mailCache){
 
 int deleteMarkedMails(mailCache * mailCache){
     if(mailCache == NULL)
-        return ERRORCODE;
+        return FAILED;
 
     char mailToDelete[MAXFILEPATHSIZE];
     for (int mailNo = 0; mailNo < mailCache->mailCount; mailNo++)
@@ -189,7 +197,7 @@ int deleteMarkedMails(mailCache * mailCache){
 //excludes mails marked to be deleted
 int getAmountOfMails(mailCache * mailCache){
     if(mailCache == NULL)
-        return ERRORCODE;
+        return FAILED;
 
     return mailCache->mailCount - mailCache->markedToDelete;
 }
@@ -197,7 +205,7 @@ int getAmountOfMails(mailCache * mailCache){
 //excludes mails marked to be deleted
 long getSizeOfMails(mailCache * mailCache){
     if(mailCache == NULL)
-        return ERRORCODE;
+        return FAILED;
 
     long sizeInBytes = 0;
     struct stat st;
@@ -253,7 +261,7 @@ static int initMailArray(mailCache *mailCache) {
     dir = opendir(mailCache->maildirPath);
     if (dir == NULL) {
         mailCache->mails = NULL;
-        return ERRORCODE;
+        return FAILED;
     }
 
     // Read directory entries
@@ -282,7 +290,7 @@ static int initMailArray(mailCache *mailCache) {
 
 static long getMailSize(mailCache * mailCache, int mailNo){
     if(mailCache == NULL || !validMailNo(mailCache, mailNo))
-        return ERRORCODE;
+        return FAILED;
 
     char buffer[MAXFILEPATHSIZE];
     getPathForMail(mailCache, buffer, mailNo);

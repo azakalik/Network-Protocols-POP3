@@ -6,21 +6,21 @@
 #include "../pop/fileBuffer.h"
 #define ACCEPT_FAILURE -1
 
-typedef enum {
+typedef enum command_execute_state{
     AVAILABLE, //can execute new command
     PROCESSING, //the current command hasn't finished yet
 } command_execute_state;
 
-typedef enum {
+typedef enum client_state{
     READING, //the server is reading from the client
     WRITING, //the server is writing to the client
 } client_state;
 
-typedef struct {
+typedef struct login_info{
     char username[MAXARGSIZE+1];
 } login_info;
 
-typedef struct {
+typedef struct user_data{
     struct command_list * command_list;
     buffer output_buff;
     pop_state session_state;
@@ -32,9 +32,7 @@ typedef struct {
     mailCache * mailCache;
 } user_data;
 
-
-
-typedef struct {
+typedef struct registered_users{
     char * username;
     char * password;
 } registered_users;

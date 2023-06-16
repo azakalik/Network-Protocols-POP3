@@ -93,9 +93,9 @@ executionStatus checkValidUsername(char * username, char * empty, user_data * da
     if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
         strcpy(data->login_info.username,username);
-        return COMMANDCOMPLETED;
+        return FINISHED;
     } 
-    return INCOMPLETECOMMAND;
+    return NOT_FINISHED;
 }
 
 
@@ -111,9 +111,9 @@ executionStatus checkValidPassword(char * password, char * empty, user_data * da
     int len = strlen(message);
     if ( getBufferFreeSpace(&data->output_buff) >= len){
         writeDataToBuffer(&data->output_buff,message,len);
-        return COMMANDCOMPLETED;
+        return FINISHED;
     }
-    return INCOMPLETECOMMAND;
+    return NOT_FINISHED;
 }
 
 //-------------------------LIST FUNCTIONS-----------------------------------------------------------------------
@@ -121,12 +121,12 @@ executionStatus checkValidPassword(char * password, char * empty, user_data * da
 int sendGreeting(user_data * user){
     char * greetingMessage = GREETINGMESSAGE;
     writeDataToBuffer(&user->output_buff,greetingMessage,strlen(greetingMessage));
-    return COMMANDCOMPLETED;
+    return FINISHED;
 }
 
 executionStatus emptyFunction(char * arg1, char * empty, user_data * user_data){
     log(INFO, "%s", "executing empty functions");
-    return COMMANDCOMPLETED;
+    return FINISHED;
 }
 
 executionStatus noop(char * unused, char * unused2, user_data * user_data){
@@ -230,17 +230,35 @@ finally:
     return 0;
 }
 
-executionStatus retr(char * mailNoString, char * unused, user_data * user_data){
+executionStatus continueRetr(user_data * user_data){
     char buffer[AUXBUFFERSIZE+1];
-    int mailNo = atoi(mailNoString);
-    char * message = "+OK message follows\r\n";
-    writeToOutputBuffer(message, user_data);
-    if(openMail(user_data->mailCache, mailNo) < 0)
-        return COMMANDERROR;
-    int saved = getNCharsFromMail(user_data->mailCache, getBufferFreeSpace(&user_data->output_buff), buffer);
-    buffer[saved] = 0;
-    writeToOutputBuffer(buffer, user_data);
-    sendTerminationCRLF(user_data, true);
-    closeMail(user_data->mailCache);
-    return 0;
+    int characters = AUXBUFFERSIZE;
+    executionStatus retValue = getNCharsFromMail(user_data->mailCache, characters, buffer);
+    if(retValue != FAILED)
+        writeToOutputBuffer(buffer, user_data);
+
+    return retValue;
+}
+
+executionStatus retr(char * mailNoString, char * unused, user_data * user_data){
+    if(user_data->commandState == AVAILABLE){ //if we are executing a new function
+        int mailNo = atoi(mailNoString);
+        char * message;
+        if(openMail(user_data->mailCache, mailNo) < 0){
+            message = "-ERR That email doesn't seem to exist\r\n";
+            writeToOutputBuffer(message, user_data);
+            return FAILED;
+        }
+        message = "+OK message follows\r\n";
+        writeToOutputBuffer(message, user_data);
+    }
+    
+    executionStatus retValue = continueRetr(user_data);
+
+    if(retValue == FINISHED){ //retr has finished executing
+        sendTerminationCRLF(user_data, true);
+        closeMail(user_data->mailCache);
+    }
+    
+    return retValue;
 }

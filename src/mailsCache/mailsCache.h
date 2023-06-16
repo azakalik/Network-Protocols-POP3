@@ -2,6 +2,12 @@
 #define MAIL_CACHE
 #define MAXFILENAME 256
 
+typedef enum executionStatus {
+    FINISHED,
+    NOT_FINISHED,
+    FAILED,
+} executionStatus;
+
 typedef struct mailCache mailCache;
 
 typedef struct mailInfo {
@@ -13,7 +19,7 @@ typedef struct mailInfo {
 mailCache * initCache(char * username);
 void freeCache(mailCache * mailCache);
 int openMail(mailCache * mailCache, int mailNo);
-int getNCharsFromMail(mailCache * mailCache, int characters, char * buffer);
+executionStatus getNCharsFromMail(mailCache * mailCache, int characters, char * buffer);
 int closeMail(mailCache * mailCache);
 int toBegin(mailCache * mailCache);
 int hasNext(mailCache * mailCache);

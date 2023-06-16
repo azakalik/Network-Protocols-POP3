@@ -18,7 +18,7 @@ void writeToClient(user_data * client){
         char auxiliaryBuffer[toWrite];
         
         readDataFromBuffer(&client->output_buff, auxiliaryBuffer, toWrite);
-        int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, MSG_NOSIGNAL); //TODO: add flags
+        int bytesSent = send(client->socket, auxiliaryBuffer, toWrite, MSG_NOSIGNAL); //MSG_NOSIGNAL is to prevent errors if the client closes the connection while we are writing to him
         if ( bytesSent < 0 ){
             log(ERROR,"Could not send data to buffer %d",client->socket);
             closeClient(client);
@@ -35,7 +35,7 @@ void writeToClient(user_data * client){
         }
     }
 
-    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list))
+    if(isBufferEmpty(&client->output_buff) && !availableCommands(client->command_list) && client->commandState == AVAILABLE)
         client->client_state = READING;
     return;
 }
