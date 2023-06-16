@@ -1,13 +1,39 @@
 #include <stdio.h>
 #include <string.h>
+#include "../src/logger/logger.h"
+#include <sys/socket.h>
 
 void printIntroduction();
+int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr);
 
 int main(int argc, char ** argv){
 
-    // setear socket UDP 
+    //Receive the port to program
+    if(argc < 1 || argc > 2){
+        // log(ERROR,"Error: Invalid number of arguments\n");
+        log(ERROR,"Usage: %s <Server Port/Service>", argv[0]);
+        // return 1;
+    }
 
-    //interface para el usuario
+    // setear socket UDP -------------------------------------
+
+    // A diferencia de TCP, guardamos a que IP/puerto se envia la data, para verificar
+    // que la respuesta sea del mismo host
+    struct addrinfo *servAddr; 
+    
+    char *server = argv[1];  
+
+    // char *servPort = (argc == 3) ? argv[2] : "echo";
+    char *servPort = "echo"; //hace falta?
+
+
+    errno = 0;
+    int sock = udpClientSocket(server, servPort, &servAddr);
+    if (sock < 0)
+        log(FATAL, "socket() failed: %s", strerror(errno));
+
+
+    // client interface -------------------------------------
 
     printIntroduction();
 
@@ -39,6 +65,29 @@ int main(int argc, char ** argv){
         }
         printf("> ");
     }
+}
+
+/* En esta version no iteramos por las posibles IPs del servidor Echo, como se hizo para TCP
+** Realizar las modificaciones necesarias para que intente por todas las IPs
+*/
+int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr) {
+  // Pedimos solamente para UDP, pero puede ser IPv4 o IPv6
+  struct addrinfo addrCriteria;                   
+  memset(&addrCriteria, 0, sizeof(addrCriteria)); 
+  addrCriteria.ai_family = AF_UNSPEC;             // Any address family
+  addrCriteria.ai_socktype = SOCK_DGRAM;          // Only datagram sockets
+  addrCriteria.ai_protocol = IPPROTO_UDP;         // Only UDP protocol
+
+  // Tomamos la primera de la lista
+  int rtnVal = getaddrinfo(host, service, &addrCriteria, servAddr);
+  if (rtnVal != 0) {
+    log(FATAL, "getaddrinfo() failed: %s", gai_strerror(rtnVal));
+	return -1;
+  }
+
+  // Socket cliente UDP
+  return socket((*servAddr)->ai_family, (*servAddr)->ai_socktype, (*servAddr)->ai_protocol); // Socket descriptor for client
+  
 }
 
 void printIntroduction(){
