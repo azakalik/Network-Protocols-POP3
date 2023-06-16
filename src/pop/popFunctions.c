@@ -47,7 +47,7 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"NOOP", noop,                  TRANSACTION},
     {"RSET", rset,                  TRANSACTION},
     {"QUIT", quit,                  ANY},
-    {"CAPA", emptyFunction,         AUTHENTICATION},
+    {"CAPA", emptyFunction,         ANY},
 };
 
 
