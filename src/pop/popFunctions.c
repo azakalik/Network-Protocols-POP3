@@ -74,6 +74,14 @@ int writeToOutputBuffer(char * buffer, user_data* data ) { //todo use it in ever
 }
 
 
+static void sendTerminationCRLF(user_data * user_data, bool addInitialCRLF){
+    char * message;
+    if(addInitialCRLF) //to use in RETR
+        message = "\r\n.\r\n";
+    else //to use in LIST
+        message = ".\r\n";
+    writeToOutputBuffer(message, user_data);
+}
 
 
 
@@ -175,6 +183,7 @@ static bool userMailDirExists(char * username){
     return opendir(auxBuffer) != NULL; //todo error check in opendir
 }
 
+
 // Examples:
 //              C: RETR 1
 //              S: +OK 120 octets
@@ -188,14 +197,26 @@ static void obtainFilePath(char * username, char * mailNumber, char * dest){
 
 }
 
-//todo que funcione con argumento
 //todo que permita listas grandes
 executionStatus list(char * mailNo, char * unused, user_data * user_data){
     char buffer[AUXBUFFERSIZE];
+    mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
+
+    //calling list with an argument
+    if(mailNo != NULL && mailNo[0] != 0){
+        if(getMailInfo(user_data->mailCache, atoi(mailNo), mailInfo) < 0)
+            sprintf(buffer, "-ERR That message doesn't seem to exist\r\n");
+        else
+            sprintf(buffer, "+OK %d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
+
+        writeToOutputBuffer(buffer, user_data);
+        goto finally;
+    }
+
+    //calling list without an argument
     sprintf(buffer, "+OK There are %d messages available\r\n", getAmountOfMails(user_data->mailCache)); //todo 5
     writeToOutputBuffer(buffer, user_data);
-
-    mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
+    
     toBegin(user_data->mailCache);
     while(hasNext(user_data->mailCache)){
         if(next(user_data->mailCache, mailInfo) >= 0){
@@ -203,6 +224,8 @@ executionStatus list(char * mailNo, char * unused, user_data * user_data){
             writeToOutputBuffer(buffer, user_data);
         }
     }
+    sendTerminationCRLF(user_data, false);
+finally:
     free(mailInfo);
     return 0;
 }
@@ -217,8 +240,7 @@ executionStatus retr(char * mailNoString, char * unused, user_data * user_data){
     int saved = getNCharsFromMail(user_data->mailCache, getBufferFreeSpace(&user_data->output_buff), buffer);
     buffer[saved] = 0;
     writeToOutputBuffer(buffer, user_data);
-    message = "\r\n.\r\n";
-    writeToOutputBuffer(message, user_data);
+    sendTerminationCRLF(user_data, true);
     closeMail(user_data->mailCache);
     return 0;
 }

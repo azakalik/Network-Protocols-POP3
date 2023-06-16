@@ -11,11 +11,6 @@ typedef enum {
     PROCESSING, //the current command hasn't finished yet
 } command_execute_state;
 
-typedef struct {
-    long offset;
-    file_buffer fileReadingBuffer;
-} retr_state_data;
-
 typedef enum {
     READING, //the server is reading from the client
     WRITING, //the server is writing to the client
@@ -31,7 +26,6 @@ typedef struct {
     pop_state session_state;
     client_state client_state;
     int socket;
-    retr_state_data retrStateData;
     login_info login_info;
     void *currentCommand; //command currently executing
     command_execute_state commandState; //command execution status (tells if you can execute a new command)

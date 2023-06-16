@@ -18,7 +18,7 @@ int closeMail(mailCache * mailCache);
 int toBegin(mailCache * mailCache);
 int hasNext(mailCache * mailCache);
 int next(mailCache * mailCache, mailInfo * mailInfo);
-//todo getMailInfo
+int getMailInfo(mailCache * mailCache, int mailNo, mailInfo * mailInfo);
 int markMailToDelete(mailCache * mailCache, int mailNo);
 int resetToDelete(mailCache * mailCache);
 int deleteMarkedMails(mailCache * mailCache);

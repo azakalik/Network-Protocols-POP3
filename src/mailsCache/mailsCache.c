@@ -119,7 +119,7 @@ int toBegin(mailCache * mailCache){
 int hasNext(mailCache * mailCache){
     if(mailCache == NULL)
         return ERRORCODE;
-    return validMailNo(mailCache, mailCache->listState.iterator+1);
+    return mailCache->listState.iterator < mailCache->mailCount;
 }
 
 int next(mailCache * mailCache, mailInfo * mailInfo){
@@ -133,9 +133,19 @@ int next(mailCache * mailCache, mailInfo * mailInfo){
         return next(mailCache, mailInfo);
     }
 
+    
+    return getMailInfo(mailCache, mailCache->listState.iterator, mailInfo);
+}
+
+int getMailInfo(mailCache * mailCache, int mailNo, mailInfo * mailInfo){
+    if(mailCache == NULL || mailInfo == NULL || !validMailNo(mailCache, mailNo))
+        return ERRORCODE;
+
+    mail mail = mailCache->mails[mailNo-1];
+
     strcpy(mailInfo->filename, mail.filename);
     mailInfo->sizeInBytes = mail.size_in_bytes;
-    mailInfo->mailNo = mailCache->listState.iterator;
+    mailInfo->mailNo = mailNo;
     return 0;
 }
 
@@ -231,7 +241,7 @@ static int getMailCount(char * maildirPath){
 }
 
 static int validMailNo(mailCache * mailCache, int mailNo){
-    return mailNo > 0 && mailNo <= mailCache->mailCount;
+    return mailNo > 0 && mailNo <= mailCache->mailCount && !mailCache->mails[mailNo-1].toDelete;
 }
 
 static int initMailArray(mailCache *mailCache) {
