@@ -49,7 +49,7 @@ mailCache * initCache(char * username){
     mailCache * mailCache = calloc(1, sizeof(struct mailCache));
     // obtain path to users maildir
     mailCache->maildirPath = malloc(MAXFILENAME);
-    sprintf(mailCache->maildirPath, "./mails/%s/", username);
+    sprintf(mailCache->maildirPath, "./mails/%s", username);
 
     mailCache->mailCount = getMailCount(mailCache->maildirPath);
     if(mailCache->mailCount > 0)
