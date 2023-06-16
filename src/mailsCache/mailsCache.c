@@ -295,7 +295,7 @@ static long getMailSize(mailCache * mailCache, int mailNo){
     char buffer[MAXFILEPATHSIZE];
     getPathForMail(mailCache, buffer, mailNo);
     struct stat st;
-    if (stat(mailCache->maildirPath, &st) != 0)
+    if (stat(buffer, &st) != 0)
         return -1;
 
     // Retrieve the file size from the stat structure
