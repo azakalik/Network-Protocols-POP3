@@ -4,30 +4,24 @@
 #include "../logger/logger.h"
 
 
-registered_users_singleton * createSingletonInstance(int userAmounts, char ** names){
-    static bool initialized = false;
-    static registered_users_singleton instance;
-    if (initialized){
-        return &instance;
-    }
-    char * delim = ":";
-    for ( int i = 0; i < userAmounts ; i++){
-        char * username = strtok(names[i],delim);
-        char * password = strtok(NULL,delim);
-        strcpy(instance.users[i].name,username);
-        strcpy(instance.users[i].password,password);
-    }
-    instance.userAmount = userAmounts;
-    initialized = true;
+bool isEmpty();
+void insertUserNode(char * name, char * password);
+void deleteUserNode(char* name);
+void removeAlluserNodes();
+
+
+user_linked_list_singleton * createSingletonUserLinkedListInstance(){
+    static user_linked_list_singleton instance;
+    instance.head = NULL;
+    instance.size = 0;
     return &instance;
 }
 
 
-static registered_users_singleton * getSingletonInstance(){
-    static registered_users_singleton * instance = NULL;
-    
+static user_linked_list_singleton * getSingletonInstance(){
+    static user_linked_list_singleton * instance = NULL;
     if (instance == NULL){
-        instance = createSingletonInstance(0,NULL);
+        instance = createSingletonUserLinkedListInstance();
     }
     return instance;
 }
@@ -35,10 +29,10 @@ static registered_users_singleton * getSingletonInstance(){
 
 
 bool validUsername(char * username){
-    registered_users_singleton * singletonPtr = getSingletonInstance();
+    user_linked_list_singleton * singletonPtr = getSingletonInstance();
     bool found = false;
-    for ( int i = 0; i < singletonPtr->userAmount && !found; i++){
-        if (strcmp(singletonPtr->users[i].name,username) == 0){
+    for ( user_node * userPtr; userPtr != NULL && !found ; userPtr = userPtr->next){
+        if (strcmp(userPtr->data.name,username) == 0){
             found = true;
         }
     }
@@ -47,12 +41,82 @@ bool validUsername(char * username){
 
 
 bool validPassword(char * username, char * password){
-    registered_users_singleton * singletonPtr = getSingletonInstance();
+    user_linked_list_singleton * singletonPtr = getSingletonInstance();
     bool found = false;
-    for ( int i = 0; i < singletonPtr->userAmount && !found; i++){
-        if (strcmp(singletonPtr->users[i].password,password) == 0 && strcmp(singletonPtr->users[i].name,username) == 0){
+    bool found = false;
+    for ( user_node * userPtr; userPtr != NULL && !found ; userPtr = userPtr->next){
+        if (strcmp(userPtr->data.name,username) == 0 && strcmp(userPtr->data.password,password)){
             found = true;
         }
     }
     return found;
+}
+
+
+// Function to check if the linked list is empty
+bool isEmpty() {
+    user_linked_list_singleton * list = getSingletonInstance();
+    return list->head == NULL;
+}
+
+// Function to insert a node at the beginning of the linked list
+void insertUserNode(char * name, char * password) {
+    user_linked_list_singleton * list = getSingletonInstance();
+    user_node* newNode = (user_node*)malloc(sizeof(user_node));
+    strcpy(newNode->data.name,name);
+    strcpy(newNode->data.password,password);
+    newNode->next = list->head;
+    list->head = newNode;
+    list->size++;
+}
+
+// Function to delete a node from the linked list by name
+void deleteUserNode(char* name) {
+    user_linked_list_singleton * list = getSingletonInstance();
+    user_node* currentNode = list->head;
+    user_node* prevNode = NULL;
+
+    while (currentNode != NULL) {
+        if (strcmp(currentNode->data.name, name) == 0) {
+            if (prevNode == NULL) {
+                // Node to be deleted is the head
+                list->head = currentNode->next;
+            } else {
+                prevNode->next = currentNode->next;
+            }
+
+            free(currentNode);
+            list->size--;
+            return;
+        }
+
+        prevNode = currentNode;
+        currentNode = currentNode->next;
+    }
+}
+
+// Function to remove all nodes from the linked list
+void removeAllUserNodes() {
+    user_linked_list_singleton * list = getSingletonInstance();
+    user_node* currentNode = list->head;
+    user_node* nextNode = NULL;
+
+    while (currentNode != NULL) {
+        nextNode = currentNode->next;
+        free(currentNode);
+        currentNode = nextNode;
+    }
+
+    list->head = NULL;
+    list->size = 0;
+}
+
+
+void initializeUserSingleton(int initialUsers, char ** names){
+    char * delim = ":";
+    for ( int i = 0; i < initialUsers ; i++){
+        char * username = strtok(names[i],delim);
+        char * password = strtok(NULL,delim);
+        insertUserNode(username,password);
+    }
 }
