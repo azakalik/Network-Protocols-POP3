@@ -1,6 +1,6 @@
 From: john.doe@example.com
 To: sranucci@itba.edu.ar
-Subject: Hello Jane
+Subject: Hello Mary
 Date: Mon, 3 June 2023 15:30:00 +0000
 
 Hello Jane,

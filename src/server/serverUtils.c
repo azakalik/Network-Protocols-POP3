@@ -308,12 +308,12 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
         
             //TODO: Escritura no controlada a buffer del cliente en caso de que este lleno
             if(command->callback.execute_command == NULL){
-                message = "-ERR Invalid command\n";
+                message = "-ERR Invalid command\r\n";
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
                 free(command);
                 return;
             } else if (command->callback.pop_state_needed != ANY && user_data->session_state != command->callback.pop_state_needed){
-                message = "-ERR Invalid state\n";
+                message = "-ERR Invalid state\r\n";
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
                 free(command);
                 return;
@@ -328,7 +328,8 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
         } else if (functionStatus == INCOMPLETECOMMAND) {
             user_data->commandState = PROCESSING;
 		} else {
-            log(ERROR,"%s","An error occured while executing a command")
+            log(ERROR,"%s","An error occured while executing a command");
+            free(user_data->currentCommand);
             //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
         }
     }

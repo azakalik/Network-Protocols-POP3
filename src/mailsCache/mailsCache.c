@@ -84,6 +84,7 @@ int openMail(mailCache * mailCache, int mailNo){
         log(FATAL,"ERRORCODE opening file: %s", path);
         return ERRORCODE;
     }
+    mailCache->retrState.currentMail = file;
 
     return 0;
 }
@@ -95,7 +96,7 @@ int getNCharsFromMail(mailCache * mailCache, int characters, char * buffer){
         return ERRORCODE;
     }
     
-    return fread(buffer, characters, 1, mailCache->retrState.currentMail);
+    return fread(buffer, 1, characters, mailCache->retrState.currentMail);
 }
 
 int closeMail(mailCache * mailCache){
