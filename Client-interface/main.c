@@ -2,6 +2,12 @@
 #include <string.h>
 #include "../src/logger/logger.h"
 #include <sys/socket.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <errno.h>
+
 
 void printIntroduction();
 int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr);
