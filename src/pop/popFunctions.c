@@ -244,7 +244,7 @@ executionStatus retr(char * mailNoString, char * unused, user_data * user_data){
     if(user_data->commandState == AVAILABLE){ //if we are executing a new function
         int mailNo = atoi(mailNoString);
         char * message;
-        if(openMail(user_data->mailCache, mailNo) < 0){
+        if(openMail(user_data->mailCache, mailNo) == FAILED){
             message = "-ERR That email doesn't seem to exist\r\n";
             writeToOutputBuffer(message, user_data);
             return FAILED;

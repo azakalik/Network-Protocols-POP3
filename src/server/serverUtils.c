@@ -331,7 +331,7 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
 		} else {
             log(ERROR,"%s","An error occured while executing a command");
             free(user_data->currentCommand);
-            //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
+            user_data->commandState = AVAILABLE;
         }
     }
 }
