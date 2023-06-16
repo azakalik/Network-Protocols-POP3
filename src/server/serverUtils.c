@@ -22,6 +22,7 @@
 
 #define MAXPENDING 5 // Maximum outstanding connection requests
 #define BUFSIZE 256
+#define MAXRESPONSELINE 512 //max response length for single line including CRLFSocketsTo
 #define MAX_ADDR_BUFFER 128
 #define MAX_UDP_REQUEST_SIZE 2048
 
@@ -345,7 +346,10 @@ void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersData)
         if ( FD_ISSET(clntSocket,readFds) ){
             readFromClient(&usersData[i]);
         } else if ( FD_ISSET(clntSocket,writeFds) ){
-            executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
+            //to be sure that we can send at least a line to the client
+            if(getBufferFreeSpace(&usersData[i].output_buff) > MAXRESPONSELINE)
+                executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
+            
             writeToClient(&usersData[i]); //sends the content of output buffer to the client
             if(usersData[i].client_state == READING && usersData[i].session_state == UPDATE) // the quit command has finished executing
 				closeClient(&usersData[i]);
