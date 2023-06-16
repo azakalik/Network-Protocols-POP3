@@ -136,51 +136,69 @@ executionStatus noop(char * unused, char * unused2, user_data * user_data){
 executionStatus dele(char * toDelete, char * unused, user_data * user_data){ //todo check valid number
     int toDeleteNumber = atoi(toDelete);
     char * msg;
-    if(markMailToDelete(user_data->mailCache, toDeleteNumber) == 0)
+    executionStatus toReturn;
+    if(markMailToDelete(user_data->mailCache, toDeleteNumber) == 0){
+        toReturn = FINISHED;
         msg = "+OK message marked to delete\r\n";
-    else
+    }
+    else {
+        toReturn = FAILED;
         msg = "-ERR That email doesn't seem to exist\r\n";
+    }
 
     writeToOutputBuffer(msg, user_data);
-    return 0;
+    return toReturn;
 }
 
 executionStatus rset(char * unused, char * unused2, user_data * user_data){
     char * msg;
-    if(resetToDelete(user_data->mailCache) == 0)
+    executionStatus toReturn;
+    if(resetToDelete(user_data->mailCache) == 0){
         msg = "+OK messages no longer marked to delete\r\n";
-    else
+        toReturn = FINISHED;
+    }
+    else {
         msg = "-ERR problem while trying to execute rset\r\n";
+        toReturn = FAILED;
+    }
 
     writeToOutputBuffer(msg, user_data);
-    return 0;
+    return toReturn;
 }
 
 executionStatus quit(char * unused, char * unused2, user_data* user_data){
     char * msg;
+    executionStatus toReturn;
     if(user_data->session_state == TRANSACTION){
-        if(deleteMarkedMails(user_data->mailCache) == 0)
+        if(deleteMarkedMails(user_data->mailCache) == 0){
             msg = "+OK deleting mails and exiting\r\n";
-        else
+            toReturn = FINISHED;
+        }
+        else {
             msg = "-ERR there was a problem deleting your emails\r\n";
+            toReturn = FAILED;
+        }
     }
     writeToOutputBuffer(msg, user_data);
     user_data->session_state = UPDATE;
     
-    return 0;
+    return toReturn;
 }
 
 executionStatus _stat(char * unused, char * unused2, user_data * user_data){
     char msg[STATBUFFERSIZE];
     snprintf(msg, STATBUFFERSIZE, "+OK %d %ld\r\n", getAmountOfMails(user_data->mailCache), getSizeOfMails(user_data->mailCache));
     writeToOutputBuffer(msg, user_data);
-    return 0;
+    return FINISHED;
 }
 
 static bool userMailDirExists(char * username){
     char auxBuffer[AUXBUFFERSIZE] = "../mails/";
     strcat(auxBuffer,username);
-    return opendir(auxBuffer) != NULL; //todo error check in opendir
+    if (opendir(auxBuffer) != NULL)
+        return FINISHED;
+    else
+        return FAILED;
 }
 
 
@@ -194,40 +212,42 @@ static bool userMailDirExists(char * username){
 
 static void obtainFilePath(char * username, char * mailNumber, char * dest){
     sprintf(dest,"../mails/%s/%s",username,mailNumber);
-
 }
 
 //todo que permita listas grandes
 executionStatus list(char * mailNo, char * unused, user_data * user_data){
     char buffer[AUXBUFFERSIZE];
     mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
+    executionStatus toReturn;
 
     //calling list with an argument
     if(mailNo != NULL && mailNo[0] != 0){
-        if(getMailInfo(user_data->mailCache, atoi(mailNo), mailInfo) < 0)
+        if(getMailInfo(user_data->mailCache, atoi(mailNo), mailInfo) == FAILED){
             sprintf(buffer, "-ERR That message doesn't seem to exist\r\n");
-        else
+            toReturn = FAILED;
+        }
+        else {
             sprintf(buffer, "+OK %d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
+            toReturn = FINISHED;
+        }
 
         writeToOutputBuffer(buffer, user_data);
-        goto finally;
+    } else { //calling list without an argument
+        sprintf(buffer, "+OK There are %d messages available\r\n", getAmountOfMails(user_data->mailCache)); //todo 5
+        writeToOutputBuffer(buffer, user_data);
+        toBegin(user_data->mailCache);
+        while(hasNext(user_data->mailCache)){
+            if(next(user_data->mailCache, mailInfo) >= 0){
+                sprintf(buffer, "%d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
+                writeToOutputBuffer(buffer, user_data);
+            }
+        }
+        sendTerminationCRLF(user_data, false);
+        toReturn = FINISHED;
     }
 
-    //calling list without an argument
-    sprintf(buffer, "+OK There are %d messages available\r\n", getAmountOfMails(user_data->mailCache)); //todo 5
-    writeToOutputBuffer(buffer, user_data);
-    
-    toBegin(user_data->mailCache);
-    while(hasNext(user_data->mailCache)){
-        if(next(user_data->mailCache, mailInfo) >= 0){
-            sprintf(buffer, "%d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
-            writeToOutputBuffer(buffer, user_data);
-        }
-    }
-    sendTerminationCRLF(user_data, false);
-finally:
     free(mailInfo);
-    return 0;
+    return toReturn;
 }
 
 executionStatus continueRetr(user_data * user_data){
