@@ -31,7 +31,7 @@ executionStatus rset(char *, char *, user_data * user_data);
 executionStatus _stat(char *, char *, user_data * user_data);
 executionStatus list(char *, char *, user_data * user_data);
 executionStatus retr(char *, char *, user_data * user_data);
-
+executionStatus capa(char *, char *, user_data * user_data);
 
 //---------------- LIST-OF-COMMANDS----------------------------
 #include "popFunctions.h"
@@ -47,7 +47,7 @@ command_with_state validCommands[TOTALCOMMANDS] = {
     {"NOOP", noop,                  TRANSACTION},
     {"RSET", rset,                  TRANSACTION},
     {"QUIT", quit,                  ANY},
-    {"CAPA", emptyFunction,         ANY},
+    {"CAPA", capa,                  ANY},
 };
 
 
@@ -281,4 +281,13 @@ executionStatus retr(char * mailNoString, char * unused, user_data * user_data){
     }
     
     return retValue;
+}
+
+
+executionStatus capa(char * unused1, char * unused2, user_data * user_data){
+    if(writeToOutputBuffer("+OK Capability list follows\r\nUSER\r\nPIPELINING\r\n.\r\n", user_data) < 0){
+        return NOT_FINISHED;
+    }
+    
+    return FINISHED;
 }
