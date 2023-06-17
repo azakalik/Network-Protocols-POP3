@@ -41,12 +41,18 @@ typedef enum {
     READM_FOR_MP,
     READMP,
     READHC,
+    READA,
+    READAU,
     READCC,
     READBR,
     READLU,
+    READ_D,
+    READDU,
+    READONEARGSEPARATOR,
     READFIRSTARGSEPARATOR,
     READSECONDARGSEPARATOR,
     READINGUSER,
+    READINGONLYUSER,
     READINGPASSWORD,
     DGRAM_MP_COMMAND,
     DGRAM_BT_COMMAND,
@@ -54,6 +60,8 @@ typedef enum {
     DGRAM_HC_COMMAND,
     DGRAM_CC_COMMAND,
     DGRAM_LU_COMMAND,
+    DGRAM_DU_COMMAND,
+    DGRAM_AU_COMMAND,
     DGRAMERR,
     INVALID_VERSION,
     INVALID_AUTHKEY,
@@ -157,6 +165,9 @@ static int listUsersStrategy(mp3p_args_data * args, char * dgramOutput){
 
 
 static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * length){
+
+    static mp3p_states onSuccessCommandState;
+
     if ( prevState == START){
         if (c == 'M')
             return READM;
@@ -268,12 +279,34 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             return READL;
         } else if (c == 'M'){
             return READM_FOR_MP;
+        } else if ( c == 'D'){
+            return READ_D;
+        } else if (c == 'A'){
+            return READA;
         }
         return DGRAMERR;
     }
 
+    if (prevState == READA){
+        if (c == 'U'){
+            onSuccessCommandState = DGRAM_AU_COMMAND;
+            return READAU;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READ_D){
+        if ( c == 'U'){
+            onSuccessCommandState = DGRAM_DU_COMMAND;
+            return READDU;
+        }
+        return DGRAMERR;
+    }
+
+
     if (prevState == READM_FOR_MP){
         if (c == 'P'){
+            onSuccessCommandState = DGRAM_MP_COMMAND;
             return READMP;
         }
         return DGRAMERR;
@@ -345,9 +378,23 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         return DGRAMERR;
     }
 
-    if (prevState == READMP){
+    if (prevState == READDU){
+        if ( c == ' '){
+            return READONEARGSEPARATOR;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READMP || prevState == READAU){
         if ( c == ' '){
             return READFIRSTARGSEPARATOR;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READONEARGSEPARATOR){
+        if ( c != ' ' && c != '\n' && c != 0){
+            return READINGONLYUSER;
         }
         return DGRAMERR;
     }
@@ -355,6 +402,15 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
     if (prevState == READFIRSTARGSEPARATOR){
         if (c != ' ' && c != '\n' && c != 0){
             return READINGUSER;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READINGONLYUSER){
+        if (c != ' ' && c != '\n' && c != 0){
+            return READINGONLYUSER;
+        } else if (c == 0){
+            return onSuccessCommandState;
         }
         return DGRAMERR;
     }
@@ -380,7 +436,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         if ( c != '\n' && c != ' ' && c != 0){
             return READINGPASSWORD;
         } else if (c == 0){
-            return DGRAM_MP_COMMAND;
+            return onSuccessCommandState;
         }
         return DGRAMERR;
     }
@@ -456,10 +512,14 @@ void copyDgramData(char * dgram, mp3p_data * dest,mp3p_states commandState){
     currentDgramPosition = copyLine(currentDgramPosition,dest->headers.authorization);
     currentDgramPosition++;//we skip the newline
 
-    if (commandState == DGRAM_MP_COMMAND){
+    if (commandState == DGRAM_MP_COMMAND || commandState == DGRAM_AU_COMMAND){
         obtainUsername(dest->headers.username,currentDgramPosition);
         obtainPassword(dest->headers.password,currentDgramPosition);
-    } 
+    } else if (commandState == DGRAM_DU_COMMAND){
+        obtainUsername(dest->headers.username,currentDgramPosition);
+    }
+
+
 
 }
 
@@ -509,6 +569,12 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
         break;
     case DGRAM_MP_COMMAND:
         dest->commandFunction = modifyUserPasswordStrategy;
+        break;
+    case DGRAM_DU_COMMAND:
+        dest->commandFunction = deleteUserStrategy;
+        break;
+    case DGRAM_AU_COMMAND:
+        dest->commandFunction = addUserStrategy;
         break;
     case INVALID_AUTHKEY:
         dest->commandFunction = unauthorizedStrategy;
