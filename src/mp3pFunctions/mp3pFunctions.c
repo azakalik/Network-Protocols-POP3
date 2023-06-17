@@ -38,10 +38,17 @@ typedef enum {
     READH,
     READC,
     READL,
+    READM_FOR_MP,
+    READMP,
     READHC,
     READCC,
     READBR,
     READLU,
+    READFIRSTARGSEPARATOR,
+    READSECONDARGSEPARATOR,
+    READINGUSER,
+    READINGPASSWORD,
+    DGRAM_MP_COMMAND,
     DGRAM_BT_COMMAND,
     DGRAM_BR_COMMAND,
     DGRAM_HC_COMMAND,
@@ -253,12 +260,21 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
     if (prevState == READTHIRDNEWLINE){
         if (c == 'B'){
             return READB;
-        } else if ( c == 'H'){
+        } else if (c == 'H'){
             return READH;
-        } else if ( c == 'C'){
+        } else if (c == 'C'){
             return READC;
-        } else if ( c == 'L'){
+        } else if (c == 'L'){
             return READL;
+        } else if (c == 'M'){
+            return READM_FOR_MP;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READM_FOR_MP){
+        if (c == 'P'){
+            return READMP;
         }
         return DGRAMERR;
     }
@@ -326,8 +342,50 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         if (c == '\0'){
             return DGRAM_LU_COMMAND;
         }
-        return DGRAMERROR;
+        return DGRAMERR;
     }
+
+    if (prevState == READMP){
+        if ( c == ' '){
+            return READFIRSTARGSEPARATOR;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READFIRSTARGSEPARATOR){
+        if (c != ' ' && c != '\n' && c != 0){
+            return READINGUSER;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READINGUSER){
+        if ( c == ' '){
+            return READSECONDARGSEPARATOR;
+        }
+        if ( c != '\n' && c != 0){
+            return READINGUSER;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READSECONDARGSEPARATOR){
+        if ( c != ' ' && c != '\n' && c != 0){
+            return READINGPASSWORD;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READINGPASSWORD){
+        if ( c != '\n' && c != ' ' && c != 0){
+            return READINGPASSWORD;
+        } else if (c == 0){
+            return DGRAM_MP_COMMAND;
+        }
+        return DGRAMERR;
+    }
+
+
     return DGRAMERR;
 
 }
@@ -364,7 +422,29 @@ char * copyLine(char * line, char * dest){
 }
 
 
-void copyDgramData(char * dgram, mp3p_data * dest){
+static void obtainUsername(char * dest,char * line){
+    char * usernamePosition = strchr(line,' ');
+    usernamePosition++;
+    while ( *usernamePosition != ' ' && *usernamePosition != 0)
+    {
+        *dest++ = *usernamePosition++;
+    }
+
+    *dest = 0;
+}
+
+static void obtainPassword(char * dest, char * line){
+    char * passwordPosition = strrchr(line,' ');
+    passwordPosition++;
+    while ( *passwordPosition != 0 && *passwordPosition != ' '){
+        *dest++ = *passwordPosition++;
+    }
+
+    *dest = 0;
+}
+
+
+void copyDgramData(char * dgram, mp3p_data * dest,mp3p_states commandState){
     char * currentDgramPosition = copyVersion(dgram,dest->headers.version);
     //we skip the newline
     currentDgramPosition++;
@@ -373,7 +453,13 @@ void copyDgramData(char * dgram, mp3p_data * dest){
     //we skip newline
     currentDgramPosition++;
     //we copy the password
-    copyLine(currentDgramPosition,dest->headers.authorization);
+    currentDgramPosition = copyLine(currentDgramPosition,dest->headers.authorization);
+    currentDgramPosition++;//we skip the newline
+
+    if (commandState == DGRAM_MP_COMMAND){
+        obtainUsername(dest->headers.username,currentDgramPosition);
+        obtainPassword(dest->headers.password,currentDgramPosition);
+    } 
 
 }
 
@@ -395,7 +481,7 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     }
 
     //datagram is well-formed, we can copy the data
-    copyDgramData(dgram,dest);
+    copyDgramData(dgram,dest,currentState);
 
     if (!checkVersion(dest->headers.version)){
         currentState = INVALID_VERSION;
@@ -420,6 +506,9 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
         break;
     case DGRAM_LU_COMMAND:
         dest->commandFunction = listUsersStrategy;
+        break;
+    case DGRAM_MP_COMMAND:
+        dest->commandFunction = modifyUserPasswordStrategy;
         break;
     case INVALID_AUTHKEY:
         dest->commandFunction = unauthorizedStrategy;
