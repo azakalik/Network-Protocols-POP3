@@ -7,7 +7,7 @@
 #include "../users/users.h"
 #define MAXDATAGRAMLENGTH 8096
 #define VERSION "V1.0"
-#define AUTHKEY "AGUANTEPROTOS"
+#define AUTHKEY "C9h2iUZ4sWJY16fDl7Vg5RnH0vN8aQpX"
 
 
 typedef enum {
@@ -62,7 +62,10 @@ typedef enum {
     DGRAM_LU_COMMAND,
     DGRAM_DU_COMMAND,
     DGRAM_AU_COMMAND,
-    DGRAMERR,
+    //---- bad states------
+    DGRAM_INVALID_COMMAND,
+    DGRAMDISCARD,
+    DGRAMBADAUTH,
     INVALID_VERSION,
     INVALID_AUTHKEY,
 } mp3p_states;
@@ -87,6 +90,8 @@ contenido
 #define UNAUTHORIZED 100
 #define WRONG_PROTOCOL_VERSION 101
 #define RESOURCE_NOT_FOUND 102
+#define BADAUTHORIZATIONFORMATION 103
+#define INVALID_COMMAND_FORMATION 104
 
 
 #define IDLENGTH 32
@@ -160,57 +165,63 @@ static int listUsersStrategy(mp3p_args_data * args, char * dgramOutput){
     return length + bytesCopied;
 }
 
+static int badAuthorizationStrategy(mp3p_args_data * args, char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,args,BADAUTHORIZATIONFORMATION);
+}
 
 
+static int invalidCommandStrategy(mp3p_args_data * args, char * dgramOutput){
+    return errorDatagramMessage(dgramOutput,args,INVALID_COMMAND_FORMATION);
+}
 
 
-static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * length){
+static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * length,int * authorizationLength){
 
     static mp3p_states onSuccessCommandState;
 
     if ( prevState == START){
         if (c == 'M')
             return READM;
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READM){
         if ( c == 'P')
             return READP;
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READP){
         if ( c == '3')
             return READ3;
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READ3){
         if ( c == 'P'){
             return READSECONDP;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READSECONDP){
         if (c == ' '){
             return READVERSIONSEPARATOR;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READVERSIONSEPARATOR){
         if ( c == 'V')
             return READVERSIONV;
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READVERSIONV){
         if ( c >= '0' && c <= '9'){
             return READVERSIONNUM;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READVERSIONNUM){
@@ -219,20 +230,21 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         } else if ( c == '.'){
             return READVERSIONDOT;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READVERSIONDOT){
         if ( c >= '0' && c <= '9'){
             return READVERSIONSUBNUM;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READVERSIONSUBNUM){
         if ( c == '\n'){
             return READFIRSTNEWLINE;
         }
+        return DGRAMDISCARD;
     }
 
     if (prevState == READFIRSTNEWLINE){
@@ -240,7 +252,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             *length += 1;
             return READCLIENTDGRAMID;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
     if (prevState == READCLIENTDGRAMID){
@@ -251,21 +263,26 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             *length += 1;
             return READCLIENTDGRAMID;
         }
-        return DGRAMERR;
+        return DGRAMDISCARD;
     }
 
 
     if (prevState == READSECONDNEWLINE){
-        if (c != '\n'){
+        if (isalnum(c)){
+            *authorizationLength += 1;
             return READCLIENTPASSWORD;
         }
-        return DGRAMERR;
+        return DGRAMBADAUTH;
     }
 
     if (prevState == READCLIENTPASSWORD){
-        if (c == '\n')
+        if (c == '\n' && *authorizationLength == IDLENGTH)
             return READTHIRDNEWLINE;
-        return READCLIENTPASSWORD;
+        if (*authorizationLength < IDLENGTH && isalnum(c)){
+            *authorizationLength += 1;
+            return READCLIENTPASSWORD;
+        }
+        return DGRAMBADAUTH;
     }
 
     if (prevState == READTHIRDNEWLINE){
@@ -284,7 +301,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         } else if (c == 'A'){
             return READA;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READA){
@@ -292,7 +309,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             onSuccessCommandState = DGRAM_AU_COMMAND;
             return READAU;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READ_D){
@@ -300,7 +317,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             onSuccessCommandState = DGRAM_DU_COMMAND;
             return READDU;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
 
@@ -309,28 +326,28 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             onSuccessCommandState = DGRAM_MP_COMMAND;
             return READMP;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READL){
         if (c == 'U'){
             return READLU;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if ( prevState == READC){
         if (c == 'C'){
             return READCC;
         } 
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if ( prevState == READH){
         if (c == 'C'){
             return READHC;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READB){
@@ -340,70 +357,70 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         if (c == 'T'){
             return READBT;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READBT){
         if ( c == '\0'){
             return DGRAM_BT_COMMAND;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if ( prevState == READBR){
         if (c == '\0'){
             return DGRAM_BR_COMMAND;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if ( prevState == READHC){
         if (c == '\0'){
             return DGRAM_HC_COMMAND;
         }
-        return DGRAM_CC_COMMAND;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READCC){
         if (c == '\0'){
             return DGRAM_CC_COMMAND;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READLU){
         if (c == '\0'){
             return DGRAM_LU_COMMAND;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READDU){
         if ( c == ' '){
             return READONEARGSEPARATOR;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READMP || prevState == READAU){
         if ( c == ' '){
             return READFIRSTARGSEPARATOR;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READONEARGSEPARATOR){
         if ( c != ' ' && c != '\n' && c != 0){
             return READINGONLYUSER;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READFIRSTARGSEPARATOR){
         if (c != ' ' && c != '\n' && c != 0){
             return READINGUSER;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READINGONLYUSER){
@@ -412,7 +429,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         } else if (c == 0){
             return onSuccessCommandState;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READINGUSER){
@@ -422,14 +439,14 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         if ( c != '\n' && c != 0){
             return READINGUSER;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READSECONDARGSEPARATOR){
         if ( c != ' ' && c != '\n' && c != 0){
             return READINGPASSWORD;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
     if (prevState == READINGPASSWORD){
@@ -438,11 +455,11 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
         } else if (c == 0){
             return onSuccessCommandState;
         }
-        return DGRAMERR;
+        return DGRAM_INVALID_COMMAND;
     }
 
 
-    return DGRAMERR;
+    return DGRAMDISCARD;
 
 }
 
@@ -528,27 +545,30 @@ void copyDgramData(char * dgram, mp3p_data * dest,mp3p_states commandState){
 int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     mp3p_states currentState = START;
     int idLength = 0;
+    int authorizationLength = 0;
     int i;
     for ( i = 0; i < dgramLen && i < MAXDATAGRAMLENGTH; i++){
-        currentState = parseMp3pCharacter(dgram[i],currentState,&idLength);
-        if ( currentState == DGRAMERR ){
+        currentState = parseMp3pCharacter(dgram[i],currentState,&idLength,&authorizationLength);
+        if ( currentState == DGRAM_INVALID_COMMAND || currentState == DGRAMDISCARD || currentState == DGRAMBADAUTH ){
             break;
         } 
     }
 
-    if (i > MAXDATAGRAMLENGTH || currentState == DGRAMERR){
+    if (i > MAXDATAGRAMLENGTH || currentState == DGRAMDISCARD){
         return DGRAMERROR;
     }
 
     //datagram is well-formed, we can copy the data
     copyDgramData(dgram,dest,currentState);
 
-    if (!checkVersion(dest->headers.version)){
-        currentState = INVALID_VERSION;
-    } else if (!checkAuthentication(dest->headers.authorization)){
-        currentState = INVALID_AUTHKEY;
-    }
+    if ( currentState != DGRAM_INVALID_COMMAND && currentState != DGRAMBADAUTH){
 
+        if (!checkVersion(dest->headers.version)){
+            currentState = INVALID_VERSION;
+        } else if (!checkAuthentication(dest->headers.authorization)){
+            currentState = INVALID_AUTHKEY;
+        }
+    }
 
     switch (currentState)
     {
@@ -576,12 +596,18 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     case DGRAM_AU_COMMAND:
         dest->commandFunction = addUserStrategy;
         break;
+    case DGRAMBADAUTH:
+        dest->commandFunction = badAuthorizationStrategy;
+        break;
+    case DGRAM_INVALID_COMMAND:
+        dest->commandFunction = invalidCommandStrategy;
+        break;
     case INVALID_AUTHKEY:
         dest->commandFunction = unauthorizedStrategy;
         break;
     case INVALID_VERSION:
         dest->commandFunction = versionMismatchStrategy;
-        break;
+        break;  
     default:
         break;
     }
