@@ -18,6 +18,7 @@
 #include <signal.h>
 #include "../parsers/commandParser.h"
 #include "../mp3pFunctions/mp3pFunctions.h"
+#include <ctype.h>
 
 
 #define MAXPENDING 5 // Maximum outstanding connection requests
@@ -223,6 +224,21 @@ void acceptConnection(user_data* connectedUsers,int servSock){
 }
 
 
+static bool checkUserAndPasswordFormat(char * str){
+    bool separatorSeen = false;
+    for ( int i = 0; str[i] != 0; i++){
+        if (str[i] == ':' && !separatorSeen){
+            separatorSeen = true;
+            if ( str[i + 1] == 0){
+                return false;
+            }
+        } else if ( str[i] == ':' && separatorSeen){
+            return false;
+        }
+    }
+    return true;
+}
+
 static char * strduplicate(char * str){
 	int len = strlen(str) + 1;
 	char * newStr = malloc(len);
@@ -239,21 +255,17 @@ args_data * parseArgs(int argc, char ** argv){
 	args_data * args = calloc(1,sizeof(args_data));
 
 	if ( argc <= 2){
-		log(ERROR,"%s","Invalid arguments");
+		log(ERROR,"%s","Invalid arguments, usage <PORT> -u user1:password1 -u user2:password2 ...");
 		exit(1);
 	}
 	
 	bool error = false;
-	for ( int i = 0; i < argc && !error; i++){
-		if ( i == 0){
-			//skip program name
-			continue;
-		}
+	for ( int i = 1; i < argc && !error; i++){
 
 		if ( i == 1){
 			int port = atoi(argv[i]);
 			if ( port < 1024){
-				log(ERROR,"%s","Invalid Usage: <PORT>, WHERE PORT >1024\n");
+				log(ERROR,"%s","Invalid Usage: <PORT>, WHERE PORT > 1024\n");
 				exit(1);
 			}
 			continue;
@@ -267,6 +279,9 @@ args_data * parseArgs(int argc, char ** argv){
 					log(FATAL,"%s","NO MEMORY");
 				}
 				args->users[args->userCount - 1] = strduplicate(argv[i + 1]);
+                if ( !checkUserAndPasswordFormat(args->users[args->userCount - 1])){
+                    error = true;
+                }
 				i++;
 			} else {
 				log(ERROR,"%s","Invalid Usage: format -u must be followed by user:pass\n");
@@ -276,6 +291,7 @@ args_data * parseArgs(int argc, char ** argv){
 	}
 
 	if ( error || args->userCount > MAXUSERS){
+        log(ERROR,"%s","Invalid Usage: format -u must be followed by user:pass\n");
 		freeArgs(args);
 		exit(1);
 	}
