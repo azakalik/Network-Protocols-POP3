@@ -90,6 +90,7 @@ int main(int argc, char ** argv){
 
     }
     closeAllClients(usersData);
+    removeAllUserNodes();
     close(servSock);
     return 0;
 

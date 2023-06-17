@@ -6,17 +6,21 @@
 #define AUTHORIZATION 512
 #define UIDSIZE 256
 #define COMMANDLEN 256
+#define USERNAMESIZE 256
+#define PASSWORDSIZE 256
 
 typedef struct {
     char version[VERSIONSIZE];
     char authorization[AUTHORIZATION];
     char uniqueID[UIDSIZE];
-} mp3p_headers_data;
+    char username[USERNAMESIZE];
+    char password[PASSWORDSIZE];
+} mp3p_args_data;
 
-typedef int (*command_strategy)(mp3p_headers_data * data,char * dgramOutput);
+typedef int (*command_strategy)(mp3p_args_data * data,char * dgramOutput);
 
 typedef struct {
-    mp3p_headers_data headers;
+    mp3p_args_data headers;
     command_strategy commandFunction;
 } mp3p_data;
 

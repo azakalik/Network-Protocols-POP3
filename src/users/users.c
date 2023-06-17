@@ -5,9 +5,7 @@
 
 
 bool isEmpty();
-bool insertUserNode(char * name, char * password);
-bool deleteUserNode(char* name);
-void removeAlluserNodes();
+
 
 
 user_linked_list_singleton * createSingletonUserLinkedListInstance(){
@@ -73,6 +71,20 @@ bool userExists(char* name) {
 }
 
 
+bool modifyUserPassword(char * username, char * newPassword) {
+    user_linked_list_singleton * list = getSingletonInstance();
+    bool modified = false;
+    for ( user_node * current = list->head;!modified && current != NULL; current = current->next){
+        if ( strcmp(current->data.name,username) == 0 ){
+            strcpy(current->data.password,newPassword);
+            modified = true;
+        }
+    }
+    return modified;
+}
+
+
+
 //TODO mirar usuario y clave
 
 // Function to insert a node at the beginning of the linked list if the user does not exist
@@ -92,8 +104,18 @@ bool insertUserNode(char* name, char* password) {
     return true;
 }
 
-// Function to delete a node from the linked list by name
-bool deleteUserNode(char* name) {
+
+int listUsers(char * dgram){
+    user_linked_list_singleton * list = getSingletonInstance();
+    int bytesCopied = 0;
+    for (user_node * userPtr = list->head; userPtr != NULL; userPtr = userPtr->next){
+        bytesCopied += sprintf(dgram + bytesCopied,"%s %s\n",userPtr->data.name,userPtr->data.password);
+    }
+    return bytesCopied;
+}
+
+
+void deleteUserNode(char* name) {
     user_linked_list_singleton * list = getSingletonInstance();
     user_node* currentNode = list->head;
     user_node* prevNode = NULL;
@@ -109,14 +131,13 @@ bool deleteUserNode(char* name) {
 
             free(currentNode);
             list->size--;
-            return true;
+            return;
         }
 
         prevNode = currentNode;
         currentNode = currentNode->next;
     }
 
-    return false;
 }
 
 // Function to remove all nodes from the linked list

@@ -29,6 +29,11 @@ typedef struct {
 void initializeUserSingleton(int initialUsers, char ** userData);
 bool validUsername(char * username);
 bool validPassword(char * username, char * password);
+void removeAllUserNodes();
+bool insertUserNode(char * name, char * password);
+void deleteUserNode(char* name);
+bool modifyUserPassword(char * username, char * newPassword);
+int listUsers(char * dgram);
 
 
 #endif

@@ -4,6 +4,7 @@
 #include "../stats/stats.h"
 #include <stdio.h>
 #include <ctype.h>
+#include "../users/users.h"
 #define MAXDATAGRAMLENGTH 8096
 #define VERSION "V1.0"
 #define AUTHKEY "AGUANTEPROTOS"
@@ -50,9 +51,7 @@ typedef enum {
 
 
 
-#define UNAUTHORIZED 100
-#define WRONG_PROTOCOL_VERSION 101
-#define INVALID_METHOD 102
+
 
 
 /*
@@ -65,50 +64,82 @@ contenido
 
 
 #define SERVERSTATSMESSAGE "MP3P V1.0 200\n%s\n%ld"
-#define SERVERERRORMESSAGE "MP3P V1.0 %d\n%s\n"
+#define SERVERSTATUSMESSAGE "MP3P V1.0 %d\n%s\n"
+#define OK 200
+#define UNAUTHORIZED 100
+#define WRONG_PROTOCOL_VERSION 101
+#define RESOURCE_NOT_FOUND 102
 
 
 #define IDLENGTH 32
 
 
-static inline int errorDatagramMessage(char * dgramOutput,mp3p_headers_data * data, int error){
-    return sprintf(dgramOutput,SERVERERRORMESSAGE,error,data->uniqueID) + 1;//we count null terminated
+static inline int errorDatagramMessage(char * dgramOutput,mp3p_args_data * data, int error){
+    return sprintf(dgramOutput,SERVERSTATUSMESSAGE,error,data->uniqueID);
+}
+
+static inline int okDatagramMessage(char * dgramOutput,mp3p_args_data* data){
+    return sprintf(dgramOutput,SERVERSTATUSMESSAGE,OK,data->uniqueID);
 }
 
 
 //error type 100, unauthorized
-static int unauthorizedStrategy(mp3p_headers_data *data, char * dgramOutput){
+static int unauthorizedStrategy(mp3p_args_data *data, char * dgramOutput){
     return errorDatagramMessage(dgramOutput,data,UNAUTHORIZED);
 }
 //error type 101, wrong protocol version
-static int versionMismatchStrategy(mp3p_headers_data * data, char * dgramOutput){
+static int versionMismatchStrategy(mp3p_args_data * data, char * dgramOutput){
     return errorDatagramMessage(dgramOutput,data,WRONG_PROTOCOL_VERSION);
 }
 
-static int outputStatisticsMessage(char * dgramOutput, mp3p_headers_data * data ,uint64_t numberData){
-    return sprintf(dgramOutput,SERVERSTATSMESSAGE,data->uniqueID,numberData) + 1;//consider null terminated
+static int outputStatisticsMessage(char * dgramOutput, mp3p_args_data * data ,uint64_t numberData){
+    return sprintf(dgramOutput,SERVERSTATSMESSAGE,data->uniqueID,numberData);
 }
 
-static int bytesTransferedStrategy(mp3p_headers_data * args, char * dgramOutput){
+static int bytesTransferedStrategy(mp3p_args_data * args, char * dgramOutput){
     uint64_t transferedBytes = getBytesRecievedFromStats();
     return outputStatisticsMessage(dgramOutput,args,transferedBytes);
 }
 
-static int bytesRecievedStrategy(mp3p_headers_data * args, char * dgramOutput){
+static int bytesRecievedStrategy(mp3p_args_data * args, char * dgramOutput){
     uint64_t transferedBytes = getBytesRecievedFromStats();
     return outputStatisticsMessage(dgramOutput,args,transferedBytes);
 }
 
 
-static int historicConnectionsStrategy(mp3p_headers_data * args,char * dgramOutput){
+static int historicConnectionsStrategy(mp3p_args_data * args,char * dgramOutput){
     uint64_t historicConnections = getHistoricConnectionsFromStats();
     return outputStatisticsMessage(dgramOutput,args,historicConnections);
 }
 
 
-static int concurrentConnectionsStrategy(mp3p_headers_data * args, char * dgramOutput){
+static int concurrentConnectionsStrategy(mp3p_args_data * args, char * dgramOutput){
     uint64_t concurrentConnections = getConcurrentConnectionsFromStats();
     return outputStatisticsMessage(dgramOutput,args,concurrentConnections);
+}
+
+static int addUserStrategy(mp3p_args_data * args, char * dgramOutput){
+    insertUserNode(args->username,args->password);
+    return okDatagramMessage(dgramOutput,args);
+}
+
+static int deleteUserStrategy(mp3p_args_data * args, char * dgramOutput){
+    deleteUserNode(args->username);
+    return okDatagramMessage(dgramOutput,args);
+}
+
+static int modifyUserPasswordStrategy(mp3p_args_data * args, char * dgramOutput){
+    bool modified = modifyUserPassword(args->username,args->password);
+    if ( modified ){
+        return okDatagramMessage(dgramOutput,args);
+    }
+    return errorDatagramMessage(dgramOutput,args,RESOURCE_NOT_FOUND);
+}
+
+static int listUsersStrategy(mp3p_args_data * args, char * dgramOutput){
+    int length = okDatagramMessage(dgramOutput,args);
+    int bytesCopied = listUsers(dgramOutput + length);
+    return length + bytesCopied;
 }
 
 

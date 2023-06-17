@@ -380,7 +380,7 @@ void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd
 
 
 void handleUdpRequest(int udpSocket){
-    char buffer[MAX_UDP_REQUEST_SIZE];
+    char buffer[MAX_UDP_REQUEST_SIZE + 1];
     struct sockaddr_in clientAddress;
     socklen_t clientAddressLength = sizeof(clientAddress);
     int bytesRead = recvfrom(udpSocket,buffer,MAX_UDP_REQUEST_SIZE,0, (struct sockaddr *)&clientAddress,&clientAddressLength);
@@ -388,10 +388,12 @@ void handleUdpRequest(int udpSocket){
         log(ERROR,"%s","recvfrom failed to recieve UDP datagram");
         return;
     }
+    buffer[bytesRead] = 0;
     addRecievedBytesToStats(bytesRead);
 
+
     mp3p_data datagramData;
-    int datagramStatus = parseDatagram(buffer,bytesRead,&datagramData);
+    int datagramStatus = parseDatagram(buffer,bytesRead + 1,&datagramData);//+1 because of null terminated
     if ( datagramStatus == DGRAMERROR){
         log(ERROR,"%s","discarding invalid datagram");
         return;
