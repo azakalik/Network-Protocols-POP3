@@ -5,8 +5,8 @@
 
 
 bool isEmpty();
-void insertUserNode(char * name, char * password);
-void deleteUserNode(char* name);
+bool insertUserNode(char * name, char * password);
+bool deleteUserNode(char* name);
 void removeAlluserNodes();
 
 
@@ -31,7 +31,7 @@ static user_linked_list_singleton * getSingletonInstance(){
 bool validUsername(char * username){
     user_linked_list_singleton * singletonPtr = getSingletonInstance();
     bool found = false;
-    for ( user_node * userPtr; userPtr != NULL && !found ; userPtr = userPtr->next){
+    for ( user_node * userPtr = singletonPtr->head; userPtr != NULL && !found ; userPtr = userPtr->next){
         if (strcmp(userPtr->data.name,username) == 0){
             found = true;
         }
@@ -43,9 +43,8 @@ bool validUsername(char * username){
 bool validPassword(char * username, char * password){
     user_linked_list_singleton * singletonPtr = getSingletonInstance();
     bool found = false;
-    bool found = false;
-    for ( user_node * userPtr; userPtr != NULL && !found ; userPtr = userPtr->next){
-        if (strcmp(userPtr->data.name,username) == 0 && strcmp(userPtr->data.password,password)){
+    for ( user_node * userPtr = singletonPtr->head; userPtr != NULL && !found ; userPtr = userPtr->next){
+        if (strcmp(userPtr->data.name,username) == 0 && strcmp(userPtr->data.password,password) == 0){
             found = true;
         }
     }
@@ -59,19 +58,42 @@ bool isEmpty() {
     return list->head == NULL;
 }
 
-// Function to insert a node at the beginning of the linked list
-void insertUserNode(char * name, char * password) {
+bool userExists(char* name) {
     user_linked_list_singleton * list = getSingletonInstance();
+    user_node* currentNode = list->head;
+
+    while (currentNode != NULL) {
+        if (strcmp(currentNode->data.name, name) == 0) {
+            return true;
+        }
+        currentNode = currentNode->next;
+    }
+
+    return false;
+}
+
+
+//TODO mirar usuario y clave
+
+// Function to insert a node at the beginning of the linked list if the user does not exist
+bool insertUserNode(char* name, char* password) {
+    user_linked_list_singleton* list = getSingletonInstance();
+
+    if (userExists(name)) {
+        return false;
+    }
+
     user_node* newNode = (user_node*)malloc(sizeof(user_node));
-    strcpy(newNode->data.name,name);
-    strcpy(newNode->data.password,password);
+    strcpy(newNode->data.name, name);
+    strcpy(newNode->data.password, password);
     newNode->next = list->head;
     list->head = newNode;
     list->size++;
+    return true;
 }
 
 // Function to delete a node from the linked list by name
-void deleteUserNode(char* name) {
+bool deleteUserNode(char* name) {
     user_linked_list_singleton * list = getSingletonInstance();
     user_node* currentNode = list->head;
     user_node* prevNode = NULL;
@@ -87,12 +109,14 @@ void deleteUserNode(char* name) {
 
             free(currentNode);
             list->size--;
-            return;
+            return true;
         }
 
         prevNode = currentNode;
         currentNode = currentNode->next;
     }
+
+    return false;
 }
 
 // Function to remove all nodes from the linked list

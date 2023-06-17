@@ -27,6 +27,8 @@ typedef struct {
 
 
 void initializeUserSingleton(int initialUsers, char ** userData);
+bool validUsername(char * username);
+bool validPassword(char * username, char * password);
 
 
 #endif

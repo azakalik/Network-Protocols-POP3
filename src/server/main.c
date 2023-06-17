@@ -21,7 +21,7 @@ int main(int argc, char ** argv){
 
     //-------------------------------------USER SINGLETON INSTANCE INITIALIZATION---------------------------------------
     args_data * data = parseArgs(argc,argv);
-    
+    initializeUserSingleton(data->userCount,data->users);
     freeArgs(data);
 
 
