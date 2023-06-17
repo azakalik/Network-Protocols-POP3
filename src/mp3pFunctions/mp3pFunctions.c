@@ -37,13 +37,16 @@ typedef enum {
     READBT,
     READH,
     READC,
+    READL,
     READHC,
     READCC,
     READBR,
+    READLU,
     DGRAM_BT_COMMAND,
     DGRAM_BR_COMMAND,
     DGRAM_HC_COMMAND,
     DGRAM_CC_COMMAND,
+    DGRAM_LU_COMMAND,
     DGRAMERR,
     INVALID_VERSION,
     INVALID_AUTHKEY,
@@ -254,6 +257,15 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             return READH;
         } else if ( c == 'C'){
             return READC;
+        } else if ( c == 'L'){
+            return READL;
+        }
+        return DGRAMERR;
+    }
+
+    if (prevState == READL){
+        if (c == 'U'){
+            return READLU;
         }
         return DGRAMERR;
     }
@@ -261,7 +273,7 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
     if ( prevState == READC){
         if (c == 'C'){
             return READCC;
-        }
+        } 
         return DGRAMERR;
     }
 
@@ -308,6 +320,13 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
             return DGRAM_CC_COMMAND;
         }
         return DGRAMERR;
+    }
+
+    if (prevState == READLU){
+        if (c == '\0'){
+            return DGRAM_LU_COMMAND;
+        }
+        return DGRAMERROR;
     }
     return DGRAMERR;
 
@@ -399,11 +418,15 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
     case DGRAM_CC_COMMAND:
         dest->commandFunction = concurrentConnectionsStrategy;
         break;
+    case DGRAM_LU_COMMAND:
+        dest->commandFunction = listUsersStrategy;
+        break;
     case INVALID_AUTHKEY:
         dest->commandFunction = unauthorizedStrategy;
         break;
     case INVALID_VERSION:
         dest->commandFunction = versionMismatchStrategy;
+        break;
     default:
         break;
     }
