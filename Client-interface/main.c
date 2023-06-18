@@ -8,6 +8,8 @@
 #include <netdb.h>
 #include <errno.h>
 
+#define INPSIZE 128
+
 
 void printIntroduction();
 int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr);
@@ -15,10 +17,15 @@ int udpClientSocket(const char *host, const char *service, struct addrinfo **ser
 int main(int argc, char ** argv){
 
     //Receive the port to program
-    if(argc < 1 || argc > 2){
+    if(argc != 4){
         // log(ERROR,"Error: Invalid number of arguments\n");
-        log(ERROR,"Usage: %s <Server Port/Service>", argv[0]);
-        // return 1;
+        fprintf(stderr,"Usage: <IPv4|IPv6> <Server IP> <Server Port/Service>\n");
+        exit(1);
+    }
+
+    if ( strcmp(argv[1],"IPv6") != 0 && strcmp(argv[1],"IPv4") != 0){
+        fprintf(stderr,"INVALID IP VERSION, use IPv6 or IPv4\n");
+        exit(1);
     }
 
     // setear socket UDP -------------------------------------
@@ -43,7 +50,7 @@ int main(int argc, char ** argv){
 
     printIntroduction();
 
-    char input[25];
+    char input[INPSIZE];
 
     while (1){
         scanf("%[^\n]", input); // Read up to a new line and store in input
@@ -101,7 +108,10 @@ int main(int argc, char ** argv){
         else if (strncmp(input, "LU", 2) == 0) {
             printf("Listing users...\n");
         }
-        else if (strncmp(input, "q", 2) == 0) {
+        else if (strncmp(input, "HELP", 4) == 0) {
+            printIntroduction();
+        }
+        else if (strncmp(input, "q") == 0) {
             printf("Quitting...\n");
             return 0;
         }
@@ -148,5 +158,6 @@ void printIntroduction(){
     printf("8.  MP <USER> <NEW PASSWORD> : To modify the password\n");
     printf("9.  DU <USER>                : To delete a user\n");
     printf("10. LU                       : To list users\n");
+    printf("11. HELP                     : To print options again\n");
     printf("> ");
 }
