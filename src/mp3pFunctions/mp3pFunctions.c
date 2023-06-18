@@ -46,6 +46,7 @@ typedef enum {
     READCC,
     READBR,
     READLU,
+    READLC,
     READ_D,
     READDU,
     READONEARGSEPARATOR,
@@ -54,6 +55,7 @@ typedef enum {
     READINGUSER,
     READINGONLYUSER,
     READINGPASSWORD,
+    DGRAM_LC_COMMAND,
     DGRAM_MP_COMMAND,
     DGRAM_BT_COMMAND,
     DGRAM_BR_COMMAND,
@@ -172,6 +174,12 @@ static int badAuthorizationStrategy(mp3p_args_data * args, char * dgramOutput){
 
 static int invalidCommandStrategy(mp3p_args_data * args, char * dgramOutput){
     return errorDatagramMessage(dgramOutput,args,INVALID_COMMAND_FORMATION);
+}
+
+static int listCapabilitiesStrategy(mp3p_args_data * args ,char * dgramOutput){
+    int length = okDatagramMessage(dgramOutput,args);
+    int bytesCopied = sprintf(dgramOutput + length,"MP3P V1.0\nBT\nBR\nCC\nHC\nDU\nAU\nMP\nLU\nLC\n");
+    return length + bytesCopied;
 }
 
 
@@ -332,6 +340,8 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
     if (prevState == READL){
         if (c == 'U'){
             return READLU;
+        } else if (c == 'C'){
+            return READLC;
         }
         return DGRAM_INVALID_COMMAND;
     }
@@ -384,6 +394,13 @@ static mp3p_states parseMp3pCharacter(char c, mp3p_states prevState, int * lengt
     if (prevState == READCC){
         if (c == '\0'){
             return DGRAM_CC_COMMAND;
+        }
+        return DGRAM_INVALID_COMMAND;
+    }
+
+    if (prevState == READLC){
+        if (c == '\0'){
+            return DGRAM_LC_COMMAND;
         }
         return DGRAM_INVALID_COMMAND;
     }
@@ -595,6 +612,9 @@ int parseDatagram(char * dgram, int dgramLen,mp3p_data * dest){
         break;
     case DGRAM_AU_COMMAND:
         dest->commandFunction = addUserStrategy;
+        break;
+    case DGRAM_LC_COMMAND:
+        dest->commandFunction = listCapabilitiesStrategy;
         break;
     case DGRAMBADAUTH:
         dest->commandFunction = badAuthorizationStrategy;
