@@ -41,6 +41,9 @@ int main(int argc, char ** argv){
         return 1;
 
     int udpServSockIpv6 = setupUDPServerSocketIpv6("6001");
+    if (udpServSockIpv6 < 0){
+        return 1;
+    }
 
     handleProgramTermination();
 
