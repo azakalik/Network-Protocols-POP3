@@ -1,5 +1,9 @@
-#STANDARD= -std=c11
-CFLAGS = $(STANDARD) -pedantic -pedantic-errors -g -Wall -Wextra -Wno-unused-parameter -Wno-newline-eof -Wno-implicit-fallthrough -D_POSIX_C_SOURCE=200112L -fsanitize=address -Wuninitialized -Wunused-variable -fsanitize=undefined -fsanitize=leak -Werror
+STANDARD= -std=c11
+DISABLE_STYLE = -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter #-Wno-implicit-fallthrough #-Wno-newline-eof   disable style warnings like unused functions
+DEBUG = -g # enable debugging symbols
+#STRICT = -Werror # treat warnings as errors
+SANITIZERS = -fsanitize=address -fsanitize=undefined -fsanitize=leak
+CFLAGS = $(STANDARD) $(DISABLE_STYLE) $(DEBUG) $(STRICT) $(SANITIZERS) -pedantic -pedantic-errors -Wall -Wextra -D_POSIX_C_SOURCE=200112L -Wuninitialized -Wunused-variable 
 SRCDIR = src
 OBJDIR = obj
 BINDIR = bin

@@ -1,4 +1,4 @@
-#include "serverFunctions.h"
+#include "../clients/clients.h"
 #include "serverUtils.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,43 +10,45 @@
 #include <errno.h>
 #include <signal.h>
 #include "../util/util.h"
-#include "popFunctions.h"
-#include "../parsers/commandList.h"
-#include "../commands/list.h"
+#include "../parsers/commandParser.h"
+#include "../users/users.h"
+#include "../stats/stats.h"
 
-#define FOREVER 1
 #define MAX_CONNECTIONS 500
-#define NOT_INITIALIZED 1
+#define NOT_ALLOCATED -1
 
-static void handleGreeting(user_data * user);
-static void handleClient(fd_set *readFd, fd_set *writeFd, user_data *usersData);
+static void handleClients(fd_set *readFd, fd_set *writeFd, user_data *usersData);
 static void acceptConnection(user_data* connectedUsers,int servSock);
 static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd, user_data * users);
 static void handleSelectActivityError();
 static void handleProgramTermination();
-static void handleStates(user_data* user);
 static void closeClient(user_data usersData[], int position);
 static void closeAllClients(user_data usersData[]);
 
-int servSock = NOT_INITIALIZED;
+int servSock = NOT_ALLOCATED;
 
 static bool serverRunning = true;
 
 static void
 sigterm_handler(const int signal) {
-    log(INFO, "Signal %d, cleaning up and exiting\n",signal);
+    log(INFO, "\nSignal %d, cleaning up and exiting\n",signal);
     serverRunning = false;
 }
 
 int main(int argc, char ** argv){
+
+    //-------------------------------------USER SINGLETON INSTANCE INITIALIZATION---------------------------------------
+    args_data * data = parseArgs(argc,argv);
+    createSingletonInstance(data->userCount,data->users);
+    freeArgs(data);
+
+
+
     // stdin will not be used
-    // close(STDIN_FILENO); -> TODOOOO
+    close(STDIN_FILENO);
     //----------------------SOCKET CREATION---------------------------------------
-	if (argc != 2) {
-		log(FATAL, "usage: %s <Server Port>", argv[0]);
-	}
-	char * servPort = argv[1];
     //servSock va a ser = 0 porque cerramos stdin
+	char * servPort = argv[1];
 	servSock = setupTCPServerSocket(servPort);
 	if (servSock < 0 )
 		return 1;
@@ -54,24 +56,18 @@ int main(int argc, char ** argv){
     handleProgramTermination();
 
     //-----------------------USER-DATA-INIT---------------------------------
-    //TODO: preguntar a coda tema conexiones estaticas (o array dinamico con malloc)
-    //TODO: preguntar si es mejor hacer algo mas eficiente (como hashmap o binary search)
     user_data usersData[MAX_CONNECTIONS];
     memset(usersData,0,sizeof(usersData));
-
-
-    getUserMails("sranucci",NULL);
+    for (int i = 0; i < MAX_CONNECTIONS; i++){
+        usersData[i].socket = NOT_ALLOCATED;
+        usersData[i].commandState = AVAILABLE;
+    }
 
     fd_set readFds;
     fd_set writeFds;
-    int maxSock;//highest numbered socket
+    int maxSock; //highest numbered socket
     while (serverRunning)
     {
-        // sigset_t mask;
-        // sigemptyset(&mask);
-        // sigaddset(&mask, SIGINT);
-        // sigaddset(&mask, SIGTERM);
-
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
@@ -79,13 +75,11 @@ int main(int argc, char ** argv){
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
-        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL, NULL/*, &mask*/);
+        int selectStatus = select(maxSock + 1,&readFds,&writeFds,NULL, NULL);
         if (selectStatus < 0){
             handleSelectActivityError();
-            //TODO: preguntar a coda como manejar errores
             continue;
         }
-
         
         //we check pasive socket for an incoming connection
         if ( FD_ISSET(servSock,&readFds) ){
@@ -93,7 +87,7 @@ int main(int argc, char ** argv){
         }
 
         //we handle client`s content
-        handleClient(&readFds,&writeFds,usersData);
+        handleClients(&readFds,&writeFds,usersData);
 
     }
     closeAllClients(usersData);
@@ -104,13 +98,14 @@ int main(int argc, char ** argv){
 
 static void closeClient(user_data usersData[], int position){
     user_data client = usersData[position];
-    if(client.socket == 0)
+    if(client.socket == NOT_ALLOCATED)
         return;
 
     log(INFO, "Closing client on fd %d and freeing its resources", client.socket);
     destroyList(client.command_list);
     close(client.socket);
-    usersData[position].socket = 0; //to mark it as unoccupied
+    memset(&usersData[position],0,sizeof(user_data)); //to mark it as unoccupied
+    usersData[position].socket = NOT_ALLOCATED;
 }
 
 static void closeAllClients(user_data usersData[]){
@@ -119,37 +114,62 @@ static void closeAllClients(user_data usersData[]){
     }
 }
 
-static void handleClient(fd_set *readFds, fd_set *writeFds, user_data *usersData)
+//attempts to execute the oldest command sent by a client
+static void executeFirstCommand(struct command_list * list, user_data * user_data){
+    if(availableCommands(list)){
+        char * message;
+
+        if(user_data->commandState == AVAILABLE){
+            command_to_execute * command = getFirstCommand(list);
+        
+            //TODO: Escritura no controlada a buffer del cliente en caso de que este lleno
+            if(command->callback.execute_command == NULL){
+                message = "-ERR Invalid command\n";
+                writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                free(command);
+                return;
+            } else if (user_data->session_state != command->callback.pop_state){
+                message = "-ERR Invalid state\n";
+                writeDataToBuffer(&user_data->output_buff, message, strlen(message));
+                free(command);
+                return;
+            }
+            user_data->currentCommand = (void *)command;
+        }
+        command_to_execute * command = (command_to_execute *)user_data->currentCommand;
+        int functionStatus = command->callback.execute_command(command->arg1, command->arg2, user_data);
+        if (functionStatus == COMMANDCOMPLETED){
+            user_data->commandState = AVAILABLE;
+        } else if (functionStatus == INCOMPLETECOMMAND) {
+            user_data->commandState = PROCESSING;
+        } else {
+            log(ERROR,"%s","An error occured while executing a command")
+            //entonces ocurrio un error al ejecutar el comando: TODO Pensar como manejar este error
+        }
+        if (user_data->commandState == AVAILABLE){
+            user_data->commandState = AVAILABLE;
+            free(user_data->currentCommand);
+        }
+    }
+}
+
+//todo limitar el numero de comandos a recibir
+//TODO VER CUANDO SE RECIBE MAS DE UN COMANDO A LA VEZ
+static void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersData)
 {
-    log(INFO,"performing a reading/writing operation");
     for ( int i = 0; i < MAX_CONNECTIONS ; i++){
         int clntSocket = usersData[i].socket;
-        if ( FD_ISSET(clntSocket,readFds)){
+        if (clntSocket == NOT_ALLOCATED)
+            continue;
+
+        if ( FD_ISSET(clntSocket,readFds) ){
             handleClientInput(&usersData[i]);
-        }
-        if ( FD_ISSET(clntSocket,writeFds)){
-            writeToClient(&usersData[i]);
-            handleStates(&usersData[i]);
+        } else if ( FD_ISSET(clntSocket,writeFds) ){
+            executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
+            writeToClient(&usersData[i]); //sends the content of output buffer to the client
         }
     }
 }
-
-static void handleGreeting(user_data * user){
-    char * welcomeMessage = "+OK Pop3 Server ready\r\n";
-    writeDataToBuffer(&user->output_buff, welcomeMessage, strlen(welcomeMessage));
-}
-
-//TODO: esto podria ser un vector de punteros a funcion por eficiencia. vale la pena?
-static void handleStates(user_data* user){
-    if(user->session_state == AUTHENTICATION){
-        // todo
-    } else if(user->session_state == TRANSACTION ){
-        // todo
-    } else { //session_state == UPDATE
-        //todo 
-    }
-}
-
 
 static void acceptConnection(user_data* connectedUsers,int servSock){
 
@@ -163,34 +183,36 @@ static void acceptConnection(user_data* connectedUsers,int servSock){
 	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
 
 	if (clntSock < 0) {
-		log(ERROR, "accept() failed");
+		log(ERROR, "%s", "accept() failed");
 		exit(ACCEPT_FAILURE);
 	}
 
     bool allocatedClient = false;
     user_data user;
     for ( int i = 0; !allocatedClient && i < MAX_CONNECTIONS; i++){
-        //only passive socket has fd 0
-        if ( connectedUsers[i].socket == 0 ){
+        if ( connectedUsers[i].socket == NOT_ALLOCATED ){
             connectedUsers[i].socket = clntSock;
             connectedUsers[i].session_state = AUTHENTICATION;
             connectedUsers[i].client_state = WRITING;
             connectedUsers[i].command_list = createList();
             allocatedClient = true;
             user = connectedUsers[i];
-            handleGreeting(&connectedUsers[i]);
+            sendGreeting(&connectedUsers[i]);
         }
     }
 
     if ( !allocatedClient ){
-        log(ERROR,"Could not allocate client who requested to connect, users structure is full");
+        log(ERROR,"%s", "Could not allocate client who requested to connect, users structure is full");
         close(clntSock);
         exit(EXIT_FAILURE); //todo dont exit!
     } else if (user.command_list == NULL){
-        log(ERROR,"Could not allocate memory for a command list in a new connection");
+        log(ERROR,"%s", "Could not allocate memory for a command list in a new connection");
         close(clntSock);
         exit(EXIT_FAILURE);
     }
+
+    //client was successfully allocated, we add it to the monitoring protocol statistics structure
+    addConcurrentConnectionToStats();
 
     
 	// clntSock is connected to a client!
@@ -204,11 +226,14 @@ static void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxN
     int maxFd = *maxNumberFd;
     for (int i = 0; i < MAX_CONNECTIONS; i++){
         int clientSocket = users[i].socket;
-        if ( clientSocket > 0){
+        if (clientSocket == NOT_ALLOCATED)
+            continue;
+
+        if (users[i].client_state == READING)
             FD_SET(clientSocket,readSet);
-            if(!isBufferEmpty(&users[i].output_buff))
-                FD_SET(clientSocket,writeSet);
-        }
+        else if (users[i].client_state == WRITING)
+            FD_SET(clientSocket,writeSet);
+
         if ( clientSocket > maxFd)
             maxFd = clientSocket;
     }
@@ -220,18 +245,18 @@ static void handleSelectActivityError(){
     switch (errno)
     {
     case EBADF:
-        log(ERROR,"One or more fd in the set are not valid\n");
+        log(ERROR,"%s", "One or more fd in the set are not valid\n");
         break;
     case EINTR:
-        log(INFO,"The select was interrupted by a signal before any request event occured\n");
+        log(INFO,"%s", "The select was interrupted by a signal before any request event occured\n");
         break;
     case EINVAL:
-        log(ERROR,"The highest fd + 1 is negative or exeeds system limit\n");
+        log(ERROR,"%s", "The highest fd + 1 is negative or exeeds system limit\n");
         break;
     case ENOMEM:
-        log(ERROR,"not enough memory to allocate required data for structures on select\n");
+        log(ERROR,"%s", "not enough memory to allocate required data for structures on select\n");
     default:
-        log(ERROR,"unexpected error when handling select activity\n");
+        log(ERROR,"%s", "unexpected error when handling select activity\n");
         break;
     }
 }
@@ -246,11 +271,11 @@ static void handleProgramTermination(){
     sa.sa_flags = 0;
 
     if (sigaction(SIGTERM, &sa, NULL) == -1) {
-        log(FATAL, "sigaction(SIGTERM) failed");
+        log(FATAL, "%s", "sigaction(SIGTERM) failed");
     }
 
     if (sigaction(SIGINT, &sa, NULL) == -1) {
-        log(FATAL, "sigaction(SIGINT) failed");
+        log(FATAL, "%s", "sigaction(SIGINT) failed");
     }
 }
 
