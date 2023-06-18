@@ -67,6 +67,13 @@ static int setupUDPServerSocket(char * service,int ipVersion){
             continue;
         }
 
+		struct sockaddr_storage localAddr;
+		socklen_t addrSize = sizeof(localAddr);
+		if (getsockname(sockfd, (struct sockaddr *) &localAddr, &addrSize) >= 0) {
+			printSocketAddress((struct sockaddr *) &localAddr, addrBuffer);
+			log(INFO, "Binding to %s", addrBuffer);
+		}
+
         break;  // Successfully bound
     }
 
@@ -397,7 +404,7 @@ void addClientsSocketsToSet(fd_set * readSet,fd_set* writeSet ,int * maxNumberFd
 
 void handleUdpRequest(int udpSocket){
     char buffer[MAX_UDP_REQUEST_SIZE + 1];
-    struct sockaddr_in clientAddress;
+    struct sockaddr_storage clientAddress;
     socklen_t clientAddressLength = sizeof(clientAddress);
     int bytesRead = recvfrom(udpSocket,buffer,MAX_UDP_REQUEST_SIZE,0, (struct sockaddr *)&clientAddress,&clientAddressLength);
     if ( bytesRead <= 0){
