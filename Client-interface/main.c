@@ -1,18 +1,27 @@
+#include "../src/logger/logger.h"
 #include <stdio.h>
 #include <string.h>
-#include "../src/logger/logger.h"
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <stdbool.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <time.h>
 
 #define INPSIZE 128
 
 
 void printIntroduction();
 int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr);
+int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr, socklen_t *length);
+int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * structAddr, socklen_t * length);
 
 int main(int argc, char ** argv){
 
@@ -28,27 +37,35 @@ int main(int argc, char ** argv){
         exit(1);
     }
 
-    // setear socket UDP -------------------------------------
+    char * ipVersion = argv[1];
+    char * server = argv[2];  
+    char * servPortString = argv[3];
 
-    // A diferencia de TCP, guardamos a que IP/puerto se envia la data, para verificar
-    // que la respuesta sea del mismo host
-    struct addrinfo *servAddr; 
-    
-    char *server = argv[1];  
-
-    // char *servPort = (argc == 3) ? argv[2] : "echo";
-    char *servPort = "echo"; //hace falta?
+    int servPort = atoi(servPortString);
+    if ( servPort <= 0){
+        fprintf(stderr,"INVALID PORT FORMAT, PLEASE USE AN INT");
+        exit(1);
+    }
 
 
     errno = 0;
-    int sock = udpClientSocket(server, servPort, &servAddr);
+
+    char serverData[sizeof(struct sockaddr_in6)];//we reserve 28 bytes in memory, the struct for ipv6 is bigger than the one for ip4
+    socklen_t addrLen;
+    int sock;
+    if ( strcmp(ipVersion,"IPv4") == 0){
+        sock = setupUDPClientSocket(server, servPort, (void *) serverData,&addrLen);
+    } else {
+        sock = setupUDPClientSocketIPv6(server,servPort,(void *) serverData,&addrLen);
+    }
     if (sock < 0)
-        log(FATAL, "socket() failed: %s", strerror(errno));
+        fprintf(stderr, "socket() failed: %s", strerror(errno));
 
 
     // client interface -------------------------------------
 
     printIntroduction();
+    printf("> ");
 
     char input[INPSIZE];
 
@@ -57,24 +74,24 @@ int main(int argc, char ** argv){
 
         // printf("%s\n", input);
         // printf("%d\n", strlen(input));
-
+        char * message;
         if (strncmp(input, "BT", 2) == 0) {
-            printf("Bytes transferred: ...\n");
+            message = "Sending bytes transferred request: ...\n";
         }
         else if (strncmp(input, "BR", 2) == 0) {
-            printf("Bytes received: ...\n");
+            message = "Sending bytes received request: ...\n";
         }
         else if (strncmp(input, "CC", 2) == 0) {
-            printf("Current connections: ...\n");
+            message = "Sending concurrent connections request: ...\n";
         }
         else if (strncmp(input, "HC", 2) == 0) {
-            printf("History connections: ...\n");
+            message = "Sending historic connections request: ...\n";
         }
         else if (strncmp(input, "AU", 2) == 0) {
             if(strlen(input) < 4){
                 printf("Usage: AU <USER>.\n");
             } else{
-                printf("Adding user...\n");
+                message = "Sending Adding user request....\n";
             }
         }
         else if (strncmp(input, "CA", 2) == 0) {
@@ -95,14 +112,14 @@ int main(int argc, char ** argv){
             if(strlen(input) < 6){
                 printf("Usage: MP <USER> <NEW PASSWORD>.\n");
             } else{
-                printf("Modifying password...\n");
+                message = "Sending modifying password request...\n";
             }
         }
         else if (strncmp(input, "DU", 2) == 0) {
             if(strlen(input) < 4){
                 printf("Usage: DU <USER>.\n");
             } else{
-                printf("Deleting user...\n");
+                message = "Sending Delete User request.....\n";
             }
         }
         else if (strncmp(input, "LU", 2) == 0) {
@@ -111,13 +128,16 @@ int main(int argc, char ** argv){
         else if (strncmp(input, "HELP", 4) == 0) {
             printIntroduction();
         }
-        else if (strncmp(input, "q") == 0) {
+        else if (strncmp(input, "Q",1) == 0) {
             printf("Quitting...\n");
             return 0;
         }
         else {
-            printf("Invalid option. Please try again.\n");
+            message = "Sending unknown command to server...\n";
         }
+
+        puts(message);
+        //send datagram
         getchar(); // Consume the newline character from the buffer
         printf("> ");
     }
@@ -159,5 +179,5 @@ void printIntroduction(){
     printf("9.  DU <USER>                : To delete a user\n");
     printf("10. LU                       : To list users\n");
     printf("11. HELP                     : To print options again\n");
-    printf("> ");
+    printf("12. Q                        : To quit\n");
 }
