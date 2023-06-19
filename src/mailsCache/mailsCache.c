@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include "../logger/logger.h"
+#include "byteStuff.h"
 
 typedef struct mail {
     char filename[MAXFILENAME];
@@ -23,6 +24,7 @@ typedef struct mail {
 typedef struct retrState {
     FILE * currentMail;
     int currentMailOffset;
+    charactersProcessor * charactersProcessor;
 } retrState;
 
 typedef struct listState {
@@ -57,16 +59,18 @@ mailCache * initCache(char * username){
     else
         mailCache->mails = NULL;
     initMailArray(mailCache);
+    mailCache->retrState.charactersProcessor = initCharactersProcessor(mailCache->retrState.charactersProcessor);
 
     return mailCache;
 }
 
 void freeCache(mailCache * mailCache){
+    if(mailCache == NULL)
+        return;
     closeMail(mailCache); //if there was any mail open, it is closed
-    if(mailCache != NULL){
-        free(mailCache->maildirPath);
-        free(mailCache->mails);
-    }
+    free(mailCache->maildirPath);
+    free(mailCache->mails);
+    free(mailCache->retrState.charactersProcessor);
     free(mailCache);
 }
 
@@ -88,16 +92,20 @@ int openMail(mailCache * mailCache, int mailNo){
     return 0;
 }
 
-executionStatus getNCharsFromMail(mailCache * mailCache, int characters, char * buffer){
-    if(mailCache == NULL || mailCache->retrState.currentMail == NULL || buffer == NULL || characters <= 0){
+executionStatus getNCharsFromMail(mailCache * mailCache, int * characters, char * buffer){
+    if(mailCache == NULL || mailCache->retrState.currentMail == NULL || buffer == NULL || *characters <= 0){
         if(buffer != NULL)
             buffer[0] = 0;
         return FAILED;
     }
     
-    int charactersRead = fread(buffer, 1, characters, mailCache->retrState.currentMail);
-    if(charactersRead > 0)
-        buffer[charactersRead] = 0;
+    int availableChars = availableCharacters(mailCache->retrState.charactersProcessor);
+    if(*characters > availableChars){
+        int charactersRead = fread(buffer, 1, *characters - availableChars, mailCache->retrState.currentMail);
+        addCharactersToProcess(mailCache->retrState.charactersProcessor, buffer, charactersRead);
+    }
+    
+    *characters = getNProcessedCharacters(mailCache->retrState.charactersProcessor, buffer, *characters);
 
     if(feof(mailCache->retrState.currentMail))
         return FINISHED;

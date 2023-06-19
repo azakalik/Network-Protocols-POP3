@@ -251,11 +251,13 @@ executionStatus list(char * mailNo, char * unused, user_data * user_data){
 }
 
 executionStatus continueRetr(user_data * user_data){
-    char buffer[AUXBUFFERSIZE+1];
-    int characters = AUXBUFFERSIZE;
-    executionStatus retValue = getNCharsFromMail(user_data->mailCache, characters, buffer);
-    if(retValue != FAILED)
+    int characters = getBufferFreeSpace(&user_data->output_buff);
+    char buffer[characters+1];
+    executionStatus retValue = getNCharsFromMail(user_data->mailCache, &characters, buffer);
+    if(retValue != FAILED){
+        buffer[characters] = 0;
         writeToOutputBuffer(buffer, user_data);
+    }
 
     return retValue;
 }
