@@ -15,12 +15,18 @@
 #include <unistd.h>
 #include <time.h>
 
+#define TIMEOUT_SECONDS 1
+#define MAX_RETRY 10
+#define REQ_ID_LEN 32
+#define MAX_DGRAM_SIZE 8096
 #define INPSIZE 128
 
 void printIntroduction();
 int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr, socklen_t *length);
 int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * structAddr, socklen_t * length);
-void sendDatagram();
+void sendDatagram(int sockFd,char * command,struct sockaddr * serverAddr,size_t serverAddrLength);
+void generateRandomString(char *output, size_t length);
+int checkValidRequestId(char * requestId, char * dgramRecieved);
 
 int main(int argc, char ** argv){
 
@@ -127,7 +133,7 @@ int main(int argc, char ** argv){
         else if (strncmp(input, "HELP", 4) == 0) {
             printIntroduction();
         }
-        else if (strncmp(input, "Q",1) == 0) {
+        else if (strncmp(input, "QUIT",4) == 0) {
             printf("Quitting...\n");
             return 0;
         }
@@ -136,7 +142,7 @@ int main(int argc, char ** argv){
         }
 
         puts(message);
-        //sendDatagram();
+        sendDatagram(sock,input,(struct sockaddr *) serverData,addrLen);
         getchar(); // Consume the newline character from the buffer
         printf("> ");
     }
@@ -198,6 +204,85 @@ int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * struct
     return sockfd;
 }
 
+void sendDatagram(int sockFd,char * command,struct sockaddr * serverAddr,size_t serverAddrLength){
+    // Message to be sent
+    char requestId[REQ_ID_LEN + 1];
+    generateRandomString(requestId,REQ_ID_LEN);
+    char buffer[MAX_DGRAM_SIZE + 1];
+    sprintf(buffer,"MP3P V1.0\n%s\nC9h2iUZ4sWJY16fDl7Vg5RnH0vN8aQpX\n%s",requestId,command);
+    int message_len = strlen(buffer);
+
+    int retry = 0;
+    int sent = 0;
+    while (retry < MAX_RETRY) {
+        // Send the message
+        ssize_t bytes_sent = sendto(sockFd, buffer, message_len, 0,
+                                    (struct sockaddr *)serverAddr, serverAddrLength);
+
+        if (bytes_sent < 0) {
+            perror("Error sending message");
+            exit(EXIT_FAILURE);
+        }
+
+
+        // Set up the receive timeout
+        struct timeval timeout;
+        timeout.tv_sec = TIMEOUT_SECONDS;
+        timeout.tv_usec = 0;
+        if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+            perror("Error setting receive timeout");
+            exit(EXIT_FAILURE);
+        }
+
+        // Receive the response
+        char response[MAX_DGRAM_SIZE + 1];
+        ssize_t bytes_received = recv(sockFd, response, MAX_DGRAM_SIZE, 0);
+        response[bytes_received] = 0;
+
+        if (bytes_received < 0 ) {
+            printf("Timeout occurred (attempt %d)\n", retry + 1);
+            retry++;
+        } else if (!checkValidRequestId(requestId,response)) {
+            printf("A datagram was recieved but the id does not match, attempt %d\n",retry + 1);
+            retry++;
+        } else {
+            printf("Response received: %s\n", response);
+            sent = 1;
+            break;
+        }
+    }
+
+    if (!sent) {
+        printf("Failed to receive response after %d attempts\n", MAX_RETRY);
+    }
+                             
+}
+
+void generateRandomString(char *output, size_t length) {
+    static const char characters[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    size_t i;
+
+    srand(time(NULL));
+
+    for (i = 0; i < length; i++) {
+        output[i] = characters[rand() % (sizeof(characters) - 1)];
+    }
+
+    output[length] = '\0';  // Null-terminate the string
+}
+
+int checkValidRequestId(char * requestId, char * dgramRecieved){
+    char * responseRequestId = strchr(dgramRecieved,'\n');
+
+    responseRequestId++;//we skip the newline
+    for ( int i = 0; i < REQ_ID_LEN && responseRequestId[i] != '\n'; i++){
+        if ( requestId[i] != responseRequestId[i] ){
+            return false;
+        }
+    }
+
+    return true;
+}
 
 void printIntroduction(){
     printf("Welcome! The commands available are:\n");
@@ -212,5 +297,5 @@ void printIntroduction(){
     printf("9.  DU <USER>                : To delete a user\n");
     printf("10. LU                       : To list users\n");
     printf("11. HELP                     : To print options again\n");
-    printf("12. Q                        : To quit\n");
+    printf("12. QUIT                     : To quit\n");
 }
