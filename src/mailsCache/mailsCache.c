@@ -70,7 +70,7 @@ void freeCache(mailCache * mailCache){
     closeMail(mailCache); //if there was any mail open, it is closed
     free(mailCache->maildirPath);
     free(mailCache->mails);
-    free(mailCache->retrState.charactersProcessor);
+    freeCharactersProcessor(mailCache->retrState.charactersProcessor);
     free(mailCache);
 }
 

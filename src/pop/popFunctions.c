@@ -178,6 +178,9 @@ executionStatus quit(char * unused, char * unused2, user_data* user_data){
             msg = "-ERR there was a problem deleting your emails\r\n";
             toReturn = FAILED;
         }
+    } else {
+        msg = "+OK exiting\r\n";
+        toReturn = FINISHED;
     }
     writeToOutputBuffer(msg, user_data);
     user_data->session_state = UPDATE;
@@ -192,29 +195,6 @@ executionStatus _stat(char * unused, char * unused2, user_data * user_data){
     return FINISHED;
 }
 
-static bool userMailDirExists(char * username){
-    char auxBuffer[AUXBUFFERSIZE] = "../mails/";
-    strcat(auxBuffer,username);
-    if (opendir(auxBuffer) != NULL)
-        return FINISHED;
-    else
-        return FAILED;
-}
-
-
-// Examples:
-//              C: RETR 1
-//              S: +OK 120 octets
-//              S: <the POP3 server sends the entire message here>
-//              S: .
-
-//---------------- RETR ----------------------------
-
-static void obtainFilePath(char * username, char * mailNumber, char * dest){
-    sprintf(dest,"../mails/%s/%s",username,mailNumber);
-}
-
-//todo que permita listas grandes
 executionStatus list(char * mailNo, char * unused, user_data * user_data){
     char buffer[AUXBUFFERSIZE];
     mailInfo * mailInfo = malloc(sizeof(struct mailInfo));

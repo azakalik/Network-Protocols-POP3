@@ -22,7 +22,7 @@ int isBufferEmpty(buffer *buff)
     return buff->count == 0;
 }
 
-void writeDataToBuffer(buffer *buff, char *src, int len)
+void writeDataToBuffer(buffer *buff, char * const src, int len)
 {
     for (int i = 0; i < len; i++)
     {

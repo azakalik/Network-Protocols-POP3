@@ -124,7 +124,7 @@ static int processWriting(full_command * full_command, char * data){
     return i - 1;
 }
 
-static int discardUntilCRLF(full_command * full_command, char * data){
+static int discardUntilCRLF(full_command * full_command, char * const data){
     bool finishedParsing = false;
 
     int i;
@@ -273,9 +273,9 @@ void destroyList(command_list * list) {
         return;
     
     command_node * node = list->first;
-    command_node * nodeToFree;
     
     while(node != NULL){
+        command_node * nodeToFree;
         nodeToFree = node;
         node = node->next;
         free(nodeToFree);

@@ -231,7 +231,7 @@ void acceptConnection(user_data* connectedUsers,int servSock){
 }
 
 
-static bool checkUserAndPasswordFormat(char * str){
+static bool checkUserAndPasswordFormat(const char * str){
     bool separatorSeen = false;
     for ( int i = 0; str[i] != 0; i++){
         if (str[i] == ':' && !separatorSeen){

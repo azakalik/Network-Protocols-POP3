@@ -86,7 +86,7 @@ contenido
 */
 
 
-#define SERVERSTATSMESSAGE "MP3P V1.0 200\n%s\n%ld"
+#define SERVERSTATSMESSAGE "MP3P V1.0 200\n%s\n%lu"
 #define SERVERSTATUSMESSAGE "MP3P V1.0 %d\n%s\n"
 #define OK 200
 #define UNAUTHORIZED 100
