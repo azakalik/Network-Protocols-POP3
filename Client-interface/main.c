@@ -143,27 +143,32 @@ int main(int argc, char ** argv){
     }
 }
 
-/* En esta version no iteramos por las posibles IPs del servidor Echo, como se hizo para TCP
-** Realizar las modificaciones necesarias para que intente por todas las IPs
-*/
-int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr) {
-  // Pedimos solamente para UDP, pero puede ser IPv4 o IPv6
-  struct addrinfo addrCriteria;                   
-  memset(&addrCriteria, 0, sizeof(addrCriteria)); 
-  addrCriteria.ai_family = AF_UNSPEC;             // Any address family
-  addrCriteria.ai_socktype = SOCK_DGRAM;          // Only datagram sockets
-  addrCriteria.ai_protocol = IPPROTO_UDP;         // Only UDP protocol
+int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr, socklen_t *length) {
+    int sockfd;
 
-  // Tomamos la primera de la lista
-  int rtnVal = getaddrinfo(host, service, &addrCriteria, servAddr);
-  if (rtnVal != 0) {
-    log(FATAL, "getaddrinfo() failed: %s", gai_strerror(rtnVal));
-	return -1;
-  }
+    // Create a UDP socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
 
-  // Socket cliente UDP
-  return socket((*servAddr)->ai_family, (*servAddr)->ai_socktype, (*servAddr)->ai_protocol); // Socket descriptor for client
-  
+    // Set up the server address structure
+    struct sockaddr_in serverAddress;
+    memset(&serverAddress, 0, sizeof(serverAddress));
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(serverPort);
+    if (inet_pton(AF_INET,serverIP, &serverAddress.sin_addr) == 0) {
+        fprintf(stderr, "Invalid server IP address\n");
+        exit(EXIT_FAILURE);
+    }
+
+    socklen_t len = sizeof(serverAddress);
+    memcpy(structAddr,&serverAddress,len);
+    *length = len;
+
+
+    return sockfd;
 }
 
 void printIntroduction(){
