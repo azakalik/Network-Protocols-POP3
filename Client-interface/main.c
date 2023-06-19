@@ -17,9 +17,7 @@
 
 #define INPSIZE 128
 
-
 void printIntroduction();
-int udpClientSocket(const char *host, const char *service, struct addrinfo **servAddr);
 int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr, socklen_t *length);
 int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * structAddr, socklen_t * length);
 
@@ -170,6 +168,35 @@ int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr,
 
     return sockfd;
 }
+
+int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * structAddr, socklen_t * length) {
+    int sockfd;
+
+    // Create a UDP socket
+    sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Set up the server address structure
+    struct sockaddr_in6 serverAddress;
+    memset(&serverAddress, 0, sizeof(serverAddress));
+    serverAddress.sin6_family = AF_INET6;
+    serverAddress.sin6_port = htons(serverPort);
+    if (inet_pton(AF_INET6, serverIP, &serverAddress.sin6_addr) <= 0) {
+        fprintf(stderr, "Invalid server IP address\n");
+        exit(EXIT_FAILURE);
+    }
+    socklen_t len = sizeof(serverAddress);
+    memcpy(structAddr,&serverAddress,len);
+    *length = len;
+
+    // No need to bind() for the client, as the OS will assign a random local port
+
+    return sockfd;
+}
+
 
 void printIntroduction(){
     printf("Welcome! The commands available are:\n");
