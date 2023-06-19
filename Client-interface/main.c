@@ -20,6 +20,7 @@
 void printIntroduction();
 int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr, socklen_t *length);
 int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * structAddr, socklen_t * length);
+void sendDatagram();
 
 int main(int argc, char ** argv){
 
@@ -135,7 +136,7 @@ int main(int argc, char ** argv){
         }
 
         puts(message);
-        //send datagram
+        //sendDatagram();
         getchar(); // Consume the newline character from the buffer
         printf("> ");
     }
