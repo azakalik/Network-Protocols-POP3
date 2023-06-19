@@ -3,7 +3,6 @@
 #include "../pop/popStandards.h"
 #include "../buffer/circularBuffer.h"
 #include "../mailsCache/mailsCache.h"
-#include "../pop/fileBuffer.h"
 #define ACCEPT_FAILURE -1
 
 typedef enum command_execute_state{
