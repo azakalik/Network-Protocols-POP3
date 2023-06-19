@@ -22,6 +22,7 @@ typedef struct charactersProcessor {
 } charactersProcessor;
 
 static void rebaseBuffer(charactersProcessor * charactersProcessor);
+static int readFromBuffer(charactersProcessor * charactersProcessor);
 
 charactersProcessor * initCharactersProcessor(){
     return calloc(1, sizeof(charactersProcessor));
@@ -37,11 +38,20 @@ int getNProcessedCharacters(charactersProcessor * charactersProcessor, char * bu
     int available = availableCharacters(charactersProcessor);
     int toCopy = available < n ? available : n;
 
-    strncpy(buffer, charactersProcessor->buffer, toCopy);
-    charactersProcessor->idx += toCopy;
+    int copied;
+    for (copied = 0; copied < toCopy; copied++)
+    {
+        int charRetrieved;
+        if ((charRetrieved = readFromBuffer(charactersProcessor)) > 0)
+            buffer[copied] = charRetrieved;
+        else
+            break;
+    }
+    
 
+    // strncpy(buffer, charactersProcessor->buffer, toCopy);
     rebaseBuffer(charactersProcessor);
-    return toCopy;
+    return copied;
 }
 
 int addCharactersToProcess(charactersProcessor * charactersProcessor, char * buffer, int n){
@@ -67,6 +77,12 @@ int availableSpace(charactersProcessor * charactersProcessor){
     return BUFFERSIZE - availableCharacters(charactersProcessor);
 }
 
+void resetCharactersProcessor(charactersProcessor * charactersProcessor){
+    charactersProcessor->idx = 0;
+    charactersProcessor->len = 0;
+    charactersProcessor->state = NORMAL;
+}
+
 static void rebaseBuffer(charactersProcessor * charactersProcessor){
     if ( charactersProcessor->len < charactersProcessor->idx){
         return;
@@ -78,72 +94,70 @@ static void rebaseBuffer(charactersProcessor * charactersProcessor){
     charactersProcessor->len = bytesToMove;
 }
 
-// //returns amout of bytes read from buffer
-// //todo falla cuando en el final del archivo hay un \r\n.\r
-// static int readFromBuffer(charactersProcessor * charactersProcessor){
-//     //read but with state machine, EOF was not reached
+//returns amout of bytes read from buffer
+//todo falla cuando en el final del archivo hay un \r\n.\r
+static int readFromBuffer(charactersProcessor * charactersProcessor){
+    //read but with state machine, EOF was not reached
     
-//     if ( buffer->currentPos >= buffer->len ){
-//         return NOAVAILABLECONTENT;
-//     }
+    if ( charactersProcessor->idx >= charactersProcessor->len ){
+        return 0;
+    }
 
-//     int c = buffer->auxBuffer[buffer->currentPos];
+    int c = charactersProcessor->buffer[charactersProcessor->idx];
 
 
-//     if ( buffer->state == INMEDIATERETURNCARRIAGE){
-//         buffer->state = INMEDIATERETURNNEWLINE;
-//         return '\r';
-//     }
+    if ( charactersProcessor->state == INMEDIATERETURNCARRIAGE){
+        charactersProcessor->state = INMEDIATERETURNNEWLINE;
+        return '\r';
+    }
 
-//     if ( buffer->state == INMEDIATERETURNNEWLINE){
-//         buffer->state = NORMAL;
-//         return '\n';
-//     }
+    if ( charactersProcessor->state == INMEDIATERETURNNEWLINE){
+        charactersProcessor->state = NORMAL;
+        return '\n';
+    }
 
-//     if ( buffer->state == READSECONDCARRIAGE ){ 
-//         //tengo garantizado que en c tengo el que le sigue al '\r'
-//         if ( c == '\n'){
-//             buffer->state = INMEDIATERETURNCARRIAGE;
-//             buffer->currentPos++;
-//             return '.';
-//         }
-//     }
+    if ( charactersProcessor->state == READSECONDCARRIAGE ){ 
+        //tengo garantizado que en c tengo el que le sigue al '\r'
+        if ( c == '\n'){
+            charactersProcessor->state = INMEDIATERETURNCARRIAGE;
+            charactersProcessor->idx++;
+            return '.';
+        }
+    }
 
-//     if ( buffer->state == DOT){ 
-//         if ( buffer->currentPos + 1 < buffer->len){
-//             //es seguro preguntar por los 2 caracteres
-//             if ( c == '\r' && buffer->auxBuffer[buffer->currentPos + 1] == '\n'){
-//                 buffer->state = NORMAL;
-//                 return '.';
-//             }
-//         } else {
-//             if ( c == '\r'){
-//                 buffer->state = READSECONDCARRIAGE;
-//                 rebaseBuffer(buffer);
-//                 buffer->currentPos++;
-//                 return NEEDMOREPROCESSINFO;
-//             }
-//         }
-//     }
+    if ( charactersProcessor->state == DOT){ 
+        if ( charactersProcessor->idx + 1 < charactersProcessor->len){
+            //es seguro preguntar por los 2 caracteres
+            if ( c == '\r' && charactersProcessor->buffer[charactersProcessor->idx + 1] == '\n'){
+                charactersProcessor->state = NORMAL;
+                return '.';
+            }
+        } else if ( c == '\r'){
+            charactersProcessor->state = READSECONDCARRIAGE;
+            rebaseBuffer(charactersProcessor);
+            charactersProcessor->idx++;
+            return 0; //todo check EOF to solve \r\n.\r problem
+        }
+    }
 
-//     if ( c == '\r'){
-//         buffer->state = READFIRSTCARRIAGE;
-//     } else if ( c == '\n'){
-//         if ( buffer->state == READFIRSTCARRIAGE){
-//             buffer->state = READFIRSTNEWLINE;
-//         }else{
-//             buffer->state = NORMAL;
-//         }
-//     } else if ( c == '.'){
-//         if (buffer->state == READFIRSTNEWLINE){
-//             buffer->state = DOT;
-//         }else {
-//             buffer->state = NORMAL;
-//         }
-//     } else {
-//         buffer->state = NORMAL;
-//     }
+    if ( c == '\r'){
+        charactersProcessor->state = READFIRSTCARRIAGE;
+    } else if ( c == '\n'){
+        if ( charactersProcessor->state == READFIRSTCARRIAGE){
+            charactersProcessor->state = READFIRSTNEWLINE;
+        }else{
+            charactersProcessor->state = NORMAL;
+        }
+    } else if ( c == '.'){
+        if (charactersProcessor->state == READFIRSTNEWLINE){
+            charactersProcessor->state = DOT;
+        }else {
+            charactersProcessor->state = NORMAL;
+        }
+    } else {
+        charactersProcessor->state = NORMAL;
+    }
 
-//     buffer->currentPos++;
-//     return c;
-// }
+    charactersProcessor->idx++;
+    return c;
+}

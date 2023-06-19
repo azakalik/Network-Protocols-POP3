@@ -9,5 +9,6 @@ int getNProcessedCharacters(charactersProcessor * charactersProcessor, char * bu
 int addCharactersToProcess(charactersProcessor * charactersProcessor, char * buffer, int n);
 int availableCharacters(charactersProcessor * charactersProcessor);
 int availableSpace(charactersProcessor * charactersProcessor);
+void resetCharactersProcessor(charactersProcessor * charactersProcessor);
 
 #endif

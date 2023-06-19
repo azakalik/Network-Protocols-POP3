@@ -88,6 +88,7 @@ int openMail(mailCache * mailCache, int mailNo){
         return FAILED;
     }
     mailCache->retrState.currentMail = file;
+    resetCharactersProcessor(mailCache->retrState.charactersProcessor);
 
     return 0;
 }
@@ -107,7 +108,7 @@ executionStatus getNCharsFromMail(mailCache * mailCache, int * characters, char 
     
     *characters = getNProcessedCharacters(mailCache->retrState.charactersProcessor, buffer, *characters);
 
-    if(feof(mailCache->retrState.currentMail))
+    if(feof(mailCache->retrState.currentMail) && availableCharacters(mailCache->retrState.charactersProcessor) == 0)
         return FINISHED;
     else if(ferror(mailCache->retrState.currentMail))
         return FAILED;
