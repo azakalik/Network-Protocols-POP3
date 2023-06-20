@@ -86,6 +86,11 @@ void closeClient(user_data * client){
     if(client->socket == NOT_ALLOCATED)
         return;
 
+    //if the client was closed while we were executing a pop function, we free it
+    if(client->commandState == PROCESSING){
+        free(client->currentCommand);
+    }
+
     destroyList(client->command_list);
     freeCache(client->mailCache);
     close(client->socket);

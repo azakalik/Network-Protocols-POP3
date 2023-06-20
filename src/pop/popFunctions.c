@@ -119,11 +119,6 @@ int sendGreeting(user_data * user){
     return FINISHED;
 }
 
-executionStatus emptyFunction(char * arg1, char * empty, user_data * user_data){
-    log(INFO, "%s", "executing empty functions");
-    return FINISHED;
-}
-
 executionStatus noop(char * unused, char * unused2, user_data * user_data){
     return writeToOutputBuffer("+OK\r\n", user_data);
 }
@@ -256,7 +251,7 @@ executionStatus continueRetr(user_data * user_data){
     //we do this so that the output buffer has at least MAX_SINGLE_LINE_RESPONSE to write a final string (like a \r\n.\r\n)
     if(characters > MAX_SINGLE_LINE_RESPONSE){
         char buffer[characters+1];
-        executionStatus retValue = getNCharsFromMail(user_data->mailCache, &characters, buffer);
+        retValue = getNCharsFromMail(user_data->mailCache, &characters, buffer);
         if(retValue != FAILED){
             buffer[characters] = 0;
             writeToOutputBuffer(buffer, user_data);
