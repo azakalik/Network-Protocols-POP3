@@ -330,7 +330,6 @@ void executeFirstCommand(struct command_list * list, user_data * user_data){
         if(user_data->commandState == AVAILABLE){
             command_to_execute * command = getFirstCommand(list);
         
-            //TODO: Escritura no controlada a buffer del cliente en caso de que este lleno
             if(command->callback.execute_command == NULL){
                 message = "-ERR Invalid command\r\n";
                 writeDataToBuffer(&user_data->output_buff, message, strlen(message));
@@ -370,7 +369,7 @@ void handleClients(fd_set *readFds, fd_set *writeFds, user_data *usersData)
             readFromClient(&usersData[i]);
         } else if ( FD_ISSET(clntSocket,writeFds) ){
             //to be sure that we can send at least a line to the client
-            if(getBufferFreeSpace(&usersData[i].output_buff) > MAXRESPONSELINE)
+            if(getBufferFreeSpace(&usersData[i].output_buff) > MAX_SINGLE_LINE_RESPONSE)
                 executeFirstCommand(usersData[i].command_list, &usersData[i]); //fills the output buffer with the response
             
             writeToClient(&usersData[i]); //sends the content of output buffer to the client
