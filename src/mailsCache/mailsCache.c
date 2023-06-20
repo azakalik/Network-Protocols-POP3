@@ -3,6 +3,7 @@
 #define BASEPATH "../mails/"
 #define MAILDIRPATHSIZE 256
 #define MAXFILEPATHSIZE MAXFILENAME+MAILDIRPATHSIZE
+#define COMMANDSIZE MAXFILEPATHSIZE + 256
 #include <stdlib.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -13,7 +14,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include "../logger/logger.h"
-#include "byteStuff.h"
 
 typedef struct mail {
     char filename[MAXFILENAME];
@@ -23,8 +23,6 @@ typedef struct mail {
 
 typedef struct retrState {
     FILE * currentMail;
-    int currentMailOffset;
-    charactersProcessor * charactersProcessor;
 } retrState;
 
 typedef struct listState {
@@ -46,6 +44,7 @@ static int validMailNo(mailCache * mailCache, int mailNo);
 static int initMailArray(mailCache * mailCache);
 static long getMailSize(mailCache * mailCache, int mailNo);
 static void getPathForMail(mailCache * mailCache, char * buffer, int mailNo);
+static void getCommandForPopen(mailCache * mailCache, char * buffer, int mailNo);
 
 mailCache * initCache(char * username){
     mailCache * mailCache = calloc(1, sizeof(struct mailCache));
@@ -59,7 +58,6 @@ mailCache * initCache(char * username){
     else
         mailCache->mails = NULL;
     initMailArray(mailCache);
-    mailCache->retrState.charactersProcessor = initCharactersProcessor(mailCache->retrState.charactersProcessor);
 
     return mailCache;
 }
@@ -70,7 +68,6 @@ void freeCache(mailCache * mailCache){
     closeMail(mailCache); //if there was any mail open, it is closed
     free(mailCache->maildirPath);
     free(mailCache->mails);
-    freeCharactersProcessor(mailCache->retrState.charactersProcessor);
     free(mailCache);
 }
 
@@ -79,18 +76,12 @@ int openMail(mailCache * mailCache, int mailNo){
         return FAILED;
 
     closeMail(mailCache); //if another mail (fd) was open, we close it first
+    char commandBuffer[COMMANDSIZE];
+    getCommandForPopen(mailCache, commandBuffer, mailNo);
+    FILE * mailFile = popen(commandBuffer, "r");
+    mailCache->retrState.currentMail = mailFile;
 
-    char path[MAXFILEPATHSIZE];
-    getPathForMail(mailCache, path, mailNo);
-    FILE * file = fopen(path, "r"); //opens mail in read mode
-    if(file == NULL){
-        log(FATAL,"FAILED opening file: %s", path);
-        return FAILED;
-    }
-    mailCache->retrState.currentMail = file;
-    resetCharactersProcessor(mailCache->retrState.charactersProcessor);
-
-    return 0;
+    return mailFile != NULL ? fileno(mailFile) : -1;
 }
 
 executionStatus getNCharsFromMail(mailCache * mailCache, int * characters, char * buffer){
@@ -100,15 +91,9 @@ executionStatus getNCharsFromMail(mailCache * mailCache, int * characters, char 
         return FAILED;
     }
     
-    int availableChars = availableCharacters(mailCache->retrState.charactersProcessor);
-    if(*characters > availableChars){
-        int charactersRead = fread(buffer, 1, *characters - availableChars, mailCache->retrState.currentMail);
-        addCharactersToProcess(mailCache->retrState.charactersProcessor, buffer, charactersRead);
-    }
-    
-    *characters = getNProcessedCharacters(mailCache->retrState.charactersProcessor, buffer, *characters);
+    *characters = fread(buffer, sizeof(char), *characters, mailCache->retrState.currentMail); //todo make non-blocking
 
-    if(feof(mailCache->retrState.currentMail) && availableCharacters(mailCache->retrState.charactersProcessor) == 0)
+    if(feof(mailCache->retrState.currentMail))
         return FINISHED;
     else if(ferror(mailCache->retrState.currentMail))
         return FAILED;
@@ -120,9 +105,8 @@ int closeMail(mailCache * mailCache){
     if(mailCache == NULL || mailCache->retrState.currentMail == NULL)
         return FAILED;
 
-    fclose(mailCache->retrState.currentMail);
+    pclose(mailCache->retrState.currentMail); //todo check if pclose or fclose
     mailCache->retrState.currentMail = NULL;
-    mailCache->retrState.currentMailOffset = 0;
     return 0;
 }
 
@@ -314,4 +298,13 @@ static long getMailSize(mailCache * mailCache, int mailNo){
 //puts in buffer the path to a mail
 static void getPathForMail(mailCache * mailCache, char * buffer, int mailNo){
     snprintf(buffer, MAXFILEPATHSIZE, "%s/%s", mailCache->maildirPath, mailCache->mails[mailNo-1].filename);
+}
+
+static void getCommandForPopen(mailCache * mailCache, char * buffer, int mailNo){
+    char filePath[MAXFILEPATHSIZE];
+    getPathForMail(mailCache, filePath, mailNo);
+
+    strcpy(buffer, "cat ");
+    strcat(buffer, filePath);
+    strcat(buffer, " | sed '1!s/^\\./../g'");
 }

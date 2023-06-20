@@ -37,7 +37,6 @@ executionStatus capa(char *, char *, user_data * user_data);
 #include "popFunctions.h"
 #include "strings.h"
 command_with_state validCommands[TOTALCOMMANDS] = {
-    {"TOP",  emptyFunction,         TRANSACTION},
     {"USER", checkValidUsername,    AUTHENTICATION},
     {"PASS", checkValidPassword,    AUTHENTICATION},
     {"STAT", _stat,                 TRANSACTION},
@@ -195,6 +194,7 @@ executionStatus _stat(char * unused, char * unused2, user_data * user_data){
     return FINISHED;
 }
 
+//todo make it work for big lists
 executionStatus list(char * mailNo, char * unused, user_data * user_data){
     char buffer[AUXBUFFERSIZE];
     mailInfo * mailInfo = malloc(sizeof(struct mailInfo));

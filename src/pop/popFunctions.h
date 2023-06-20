@@ -12,9 +12,7 @@ typedef struct command_with_state {
     pop_state pop_state_needed; //pop state needed to execute this command
 } command_with_state;
 
-#define VALIDTHREELETTERSCOMMANDSIZE 1
-#define VALIDFOURLETTERSCOMMANDSIZE 10
-#define TOTALCOMMANDS VALIDTHREELETTERSCOMMANDSIZE + VALIDFOURLETTERSCOMMANDSIZE
+#define TOTALCOMMANDS 10
 
 command_with_state * getCommand(char * command_name);
 int sendGreeting(user_data * user);

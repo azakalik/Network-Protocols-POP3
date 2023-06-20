@@ -29,6 +29,7 @@ typedef struct user_data{
     void *currentCommand; //command currently executing
     command_execute_state commandState; //command execution status (tells if you can execute a new command)
     mailCache * mailCache;
+    int openedMailFd;
 } user_data;
 
 typedef struct registered_users{
