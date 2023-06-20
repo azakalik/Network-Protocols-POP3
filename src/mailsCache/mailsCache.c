@@ -212,19 +212,18 @@ int getAmountOfMails(mailCache * mailCache){
 }
 
 //excludes mails marked to be deleted
-long getSizeOfMails(mailCache * mailCache){
+long long getSizeOfMails(mailCache * mailCache){
     if(mailCache == NULL)
         return FAILED;
 
-    long sizeInBytes = 0;
-    struct stat st;
+    long long sizeInBytes = 0;
     for (int i = 0; i < mailCache->mailCount; i++){
         if(!mailCache->mails[i].toDelete){
-            if (stat(mailCache->maildirPath, &st) != 0)
+            long mailSize = getMailSize(mailCache, i+1);
+            if(mailSize < 0)
                 return -1;
 
-            // Retrieve the file size from the stat structure
-            sizeInBytes += st.st_size;
+            sizeInBytes += mailSize;
         }
     }
     return sizeInBytes;

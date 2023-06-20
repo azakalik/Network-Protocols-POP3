@@ -19,7 +19,6 @@
 //----------------FUNCTION-PROTOTYPES--------------------------
 executionStatus checkValidUsername(char * username, char * empty, user_data * data);
 executionStatus checkValidPassword(char * password, char * empty, user_data * data);
-executionStatus emptyFunction(char * arg1, char * empty, user_data * user_data);
 executionStatus quit(char *, char *, user_data * user_data);
 executionStatus noop(char *, char *, user_data * user_data);
 executionStatus dele(char * toDelete, char *, user_data * user_data);
@@ -33,7 +32,6 @@ executionStatus capa(char *, char *, user_data * user_data);
 #include "popFunctions.h"
 #include "strings.h"
 command_with_state validCommands[TOTALCOMMANDS] = {
-    {"TOP",  emptyFunction,         TRANSACTION},
     {"USER", checkValidUsername,    AUTHENTICATION},
     {"PASS", checkValidPassword,    AUTHENTICATION},
     {"STAT", _stat,                 TRANSACTION},
@@ -162,7 +160,7 @@ executionStatus quit(char * unused, char * unused2, user_data* user_data){
     executionStatus toReturn;
     if(user_data->session_state == TRANSACTION){
         if(deleteMarkedMails(user_data->mailCache) == 0){
-            msg = "+OK deleting mails and exiting\r\n";
+            msg = "+OK exiting\r\n";
             toReturn = FINISHED;
         }
         else {
@@ -181,7 +179,7 @@ executionStatus quit(char * unused, char * unused2, user_data* user_data){
 
 executionStatus _stat(char * unused, char * unused2, user_data * user_data){
     char msg[MAX_SINGLE_LINE_RESPONSE];
-    snprintf(msg, MAX_SINGLE_LINE_RESPONSE, "+OK %d %ld\r\n", getAmountOfMails(user_data->mailCache), getSizeOfMails(user_data->mailCache));
+    snprintf(msg, MAX_SINGLE_LINE_RESPONSE, "+OK %d %lld\r\n", getAmountOfMails(user_data->mailCache), getSizeOfMails(user_data->mailCache));
     writeToOutputBuffer(msg, user_data);
     return FINISHED;
 }

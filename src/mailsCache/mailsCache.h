@@ -29,6 +29,6 @@ int markMailToDelete(mailCache * mailCache, int mailNo);
 int resetToDelete(mailCache * mailCache);
 int deleteMarkedMails(mailCache * mailCache);
 int getAmountOfMails(mailCache * mailCache); //excludes mails marked to be deleted
-long getSizeOfMails(mailCache * mailCache); //excludes mails marked to be deleted
+long long getSizeOfMails(mailCache * mailCache); //excludes mails marked to be deleted
 
 #endif
