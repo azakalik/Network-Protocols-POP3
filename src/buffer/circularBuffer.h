@@ -2,7 +2,7 @@
 #define CIRCULAR_BUFFER
 
 #define BUFFERSIZE 2048
-typedef struct { //todo esto deberia estar en el .c
+typedef struct buffer {
     char buffer[BUFFERSIZE];
     int count;
     int readPtr;

@@ -38,7 +38,6 @@ executionStatus capa(char *, char *, user_data * user_data);
 #include "popFunctions.h"
 #include "strings.h"
 command_with_state validCommands[TOTALCOMMANDS] = {
-    {"TOP",  emptyFunction,         TRANSACTION},
     {"USER", checkValidUsername,    AUTHENTICATION},
     {"PASS", checkValidPassword,    AUTHENTICATION},
     {"STAT", _stat,                 TRANSACTION},
