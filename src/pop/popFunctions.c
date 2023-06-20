@@ -5,6 +5,7 @@
 #define WRITE_ERROR -1
 #define WRITE_SUCCESS 0
 #define STATBUFFERSIZE 32
+#define LISTMAXSIZE 128
 
 
 #include <dirent.h>
@@ -195,14 +196,42 @@ executionStatus _stat(char * unused, char * unused2, user_data * user_data){
     return FINISHED;
 }
 
-executionStatus list(char * mailNo, char * unused, user_data * user_data){
+static executionStatus continueList(user_data * user_data, mailInfo * mailInfo){
+    char buffer[AUXBUFFERSIZE];
+    while(getBufferFreeSpace(&user_data->output_buff) > LISTMAXSIZE && hasNext(user_data->mailCache)){
+        if(next(user_data->mailCache, mailInfo) >= 0){
+            sprintf(buffer, "%d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
+            writeToOutputBuffer(buffer, user_data);
+        }
+    }
+    return hasNext(user_data->mailCache) ? NOT_FINISHED : FINISHED;
+}
+
+static executionStatus listWithNoArguments(user_data * user_data){
+    char buffer[AUXBUFFERSIZE];
+    mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
+    if (user_data->commandState == AVAILABLE){ //we aren't continuing a previous execution
+        sprintf(buffer, "+OK There are %d messages available\r\n", getAmountOfMails(user_data->mailCache));
+        writeToOutputBuffer(buffer, user_data);
+        toBegin(user_data->mailCache);
+    }
+
+    executionStatus status = continueList(user_data, mailInfo);
+    free(mailInfo);
+
+    if (status == FINISHED){
+        sendTerminationCRLF(user_data, false);
+        return FINISHED;
+    }
+    else
+        return NOT_FINISHED;
+}
+
+static executionStatus listWithArgument(user_data * user_data, char * mailNo){
     char buffer[AUXBUFFERSIZE];
     mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
     executionStatus toReturn;
-
-    //calling list with an argument
-    if(mailNo != NULL && mailNo[0] != 0){
-        if(getMailInfo(user_data->mailCache, atoi(mailNo), mailInfo) == FAILED){
+    if(getMailInfo(user_data->mailCache, atoi(mailNo), mailInfo) == FAILED){
             sprintf(buffer, "-ERR That message doesn't seem to exist\r\n");
             toReturn = FAILED;
         }
@@ -212,22 +241,18 @@ executionStatus list(char * mailNo, char * unused, user_data * user_data){
         }
 
         writeToOutputBuffer(buffer, user_data);
-    } else { //calling list without an argument
-        sprintf(buffer, "+OK There are %d messages available\r\n", getAmountOfMails(user_data->mailCache)); //todo 5
-        writeToOutputBuffer(buffer, user_data);
-        toBegin(user_data->mailCache);
-        while(hasNext(user_data->mailCache)){
-            if(next(user_data->mailCache, mailInfo) >= 0){
-                sprintf(buffer, "%d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
-                writeToOutputBuffer(buffer, user_data);
-            }
-        }
-        sendTerminationCRLF(user_data, false);
-        toReturn = FINISHED;
-    }
+        free(mailInfo);
+        return toReturn;
+}
 
-    free(mailInfo);
-    return toReturn;
+
+executionStatus list(char * mailNo, char * unused, user_data * user_data){
+    //calling list with an argument
+    if(mailNo != NULL && mailNo[0] != 0){
+        return listWithArgument(user_data, mailNo);
+    } else { //calling list without an argument
+        return listWithNoArguments(user_data);
+    }
 }
 
 executionStatus continueRetr(user_data * user_data){
