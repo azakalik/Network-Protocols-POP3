@@ -3,6 +3,7 @@
 
 #include "popStandards.h"
 #include "../clients/clients.h"
+#define MAX_SINGLE_LINE_RESPONSE 128 //max length of single line POP function responses (RFC1939 says 512 but we don't use that much)
 
 typedef executionStatus (*command_handler)(char * arg1, char * arg2, user_data * user_data); //pop functions declaration
 

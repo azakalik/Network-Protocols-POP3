@@ -1,11 +1,6 @@
-#define AUXBUFFERSIZE 512
-#define OUTPUTBUFFERSIZE 512
-#define RECOVERERROR -1
 #define GREETINGMESSAGE "+OK Pop3 Server Ready\r\n"
 #define WRITE_ERROR -1
 #define WRITE_SUCCESS 0
-#define STATBUFFERSIZE 32
-#define LISTMAXSIZE 128
 
 
 #include <dirent.h>
@@ -63,7 +58,7 @@ command_with_state * getCommand(char * command_name){
 }
 
 //todo improve!!!
-int writeToOutputBuffer(char * buffer, user_data* data ) { //todo use it in every pop function
+int writeToOutputBuffer(char * buffer, user_data* data ) {
     int length = strlen(buffer);
     if(getBufferFreeSpace(&data->output_buff) >= length ){
         writeDataToBuffer(&data->output_buff, buffer, length);
@@ -189,15 +184,15 @@ executionStatus quit(char * unused, char * unused2, user_data* user_data){
 }
 
 executionStatus _stat(char * unused, char * unused2, user_data * user_data){
-    char msg[STATBUFFERSIZE];
-    snprintf(msg, STATBUFFERSIZE, "+OK %d %ld\r\n", getAmountOfMails(user_data->mailCache), getSizeOfMails(user_data->mailCache));
+    char msg[MAX_SINGLE_LINE_RESPONSE];
+    snprintf(msg, MAX_SINGLE_LINE_RESPONSE, "+OK %d %ld\r\n", getAmountOfMails(user_data->mailCache), getSizeOfMails(user_data->mailCache));
     writeToOutputBuffer(msg, user_data);
     return FINISHED;
 }
 
 static executionStatus continueList(user_data * user_data, mailInfo * mailInfo){
-    char buffer[AUXBUFFERSIZE];
-    while(getBufferFreeSpace(&user_data->output_buff) > LISTMAXSIZE && hasNext(user_data->mailCache)){
+    char buffer[MAX_SINGLE_LINE_RESPONSE];
+    while(getBufferFreeSpace(&user_data->output_buff) > MAX_SINGLE_LINE_RESPONSE && hasNext(user_data->mailCache)){
         if(next(user_data->mailCache, mailInfo) >= 0){
             sprintf(buffer, "%d %ld\r\n", mailInfo->mailNo, mailInfo->sizeInBytes);
             writeToOutputBuffer(buffer, user_data);
@@ -207,7 +202,7 @@ static executionStatus continueList(user_data * user_data, mailInfo * mailInfo){
 }
 
 static executionStatus listWithNoArguments(user_data * user_data){
-    char buffer[AUXBUFFERSIZE];
+    char buffer[MAX_SINGLE_LINE_RESPONSE];
     mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
     if (user_data->commandState == AVAILABLE){ //we aren't continuing a previous execution
         sprintf(buffer, "+OK There are %d messages available\r\n", getAmountOfMails(user_data->mailCache));
@@ -227,7 +222,7 @@ static executionStatus listWithNoArguments(user_data * user_data){
 }
 
 static executionStatus listWithArgument(user_data * user_data, char * mailNo){
-    char buffer[AUXBUFFERSIZE];
+    char buffer[MAX_SINGLE_LINE_RESPONSE];
     mailInfo * mailInfo = malloc(sizeof(struct mailInfo));
     executionStatus toReturn;
     if(getMailInfo(user_data->mailCache, atoi(mailNo), mailInfo) == FAILED){
@@ -256,13 +251,17 @@ executionStatus list(char * mailNo, char * unused, user_data * user_data){
 
 executionStatus continueRetr(user_data * user_data){
     int characters = getBufferFreeSpace(&user_data->output_buff);
-    char buffer[characters+1];
-    executionStatus retValue = getNCharsFromMail(user_data->mailCache, &characters, buffer);
-    if(retValue != FAILED){
-        buffer[characters] = 0;
-        writeToOutputBuffer(buffer, user_data);
-    }
+    executionStatus retValue = NOT_FINISHED;
 
+    //we do this so that the output buffer has at least MAX_SINGLE_LINE_RESPONSE to write a final string (like a \r\n.\r\n)
+    if(characters > MAX_SINGLE_LINE_RESPONSE){
+        char buffer[characters+1];
+        executionStatus retValue = getNCharsFromMail(user_data->mailCache, &characters, buffer);
+        if(retValue != FAILED){
+            buffer[characters] = 0;
+            writeToOutputBuffer(buffer, user_data);
+        }
+    }
     return retValue;
 }
 
