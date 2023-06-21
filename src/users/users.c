@@ -24,20 +24,6 @@ static user_linked_list_singleton * getSingletonInstance(){
     return instance;
 }
 
-
-
-bool validUsername(char * username){
-    user_linked_list_singleton * singletonPtr = getSingletonInstance();
-    bool found = false;
-    for ( user_node * userPtr = singletonPtr->head; userPtr != NULL && !found ; userPtr = userPtr->next){
-        if (strcmp(userPtr->data.name,username) == 0){
-            found = true;
-        }
-    }
-    return found;
-}
-
-
 bool validPassword(char * username, char * password){
     user_linked_list_singleton * singletonPtr = getSingletonInstance();
     bool found = false;

@@ -72,11 +72,6 @@ typedef enum {
     INVALID_AUTHKEY,
 } mp3p_states;
 
-
-
-
-
-
 /*
 ORDEN:
 header
@@ -122,7 +117,7 @@ static int outputStatisticsMessage(char * dgramOutput, mp3p_args_data * data ,ui
 }
 
 static int bytesTransferedStrategy(mp3p_args_data * args, char * dgramOutput){
-    uint64_t transferedBytes = getBytesRecievedFromStats();
+    uint64_t transferedBytes = getBytesTransferedFromStats();
     return outputStatisticsMessage(dgramOutput,args,transferedBytes);
 }
 
