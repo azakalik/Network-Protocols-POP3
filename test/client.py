@@ -3,10 +3,10 @@ import random
 import time
 
 # Server details
-server = 'localhost' # localhost if we are running the server locally or pampero.itba.edu.ar if we are running it in pampero
+server = 'pampero.itba.edu.ar' # localhost if we are running the server locally or pampero.itba.edu.ar if we are running it in pampero
 port = 8082 # POP server passive port
-username = 'newuser' # user we want to connect with
-password = 'hola'
+username = 'santi' # user we want to connect with
+password = 'panti'
 
 # Connect to the server
 pop_conn = poplib.POP3(server, port)
