@@ -12,8 +12,10 @@ Alumnos:
 ### Compilación
 En la raíz del proyecto ejecutar:
 
-```make clean```
-```make all```
+```
+make clean
+make all
+```
 
 Esto genera el binario `project` en la carpeta `bin`
 
