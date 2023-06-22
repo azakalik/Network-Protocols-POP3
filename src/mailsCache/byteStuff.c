@@ -95,7 +95,6 @@ static void rebaseBuffer(charactersProcessor * charactersProcessor){
 }
 
 //returns amout of bytes read from buffer
-//todo falla cuando en el final del archivo hay un \r\n.\r
 static int readFromBuffer(charactersProcessor * charactersProcessor){
     //read but with state machine, EOF was not reached
     
@@ -136,7 +135,7 @@ static int readFromBuffer(charactersProcessor * charactersProcessor){
             charactersProcessor->state = READSECONDCARRIAGE;
             rebaseBuffer(charactersProcessor);
             charactersProcessor->idx++;
-            return 0; //todo check EOF to solve \r\n.\r problem
+            return 0;
         }
     }
 

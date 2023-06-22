@@ -46,7 +46,6 @@ command_with_state validCommands[TOTALCOMMANDS] = {
 
 
 //returns NULL if command not found or pointer to POP command if exists
-//todo make more efficient
 command_with_state * getCommand(char * command_name){
     for ( int i = 0; i < TOTALCOMMANDS; i++){
         if ( strcasecmp(validCommands[i].commandStr, command_name) == 0 ){
@@ -56,7 +55,6 @@ command_with_state * getCommand(char * command_name){
     return NULL;
 }
 
-//todo improve!!!
 int writeToOutputBuffer(char * buffer, user_data* data ) {
     int length = strlen(buffer);
     if(getBufferFreeSpace(&data->output_buff) >= length ){
@@ -122,7 +120,7 @@ executionStatus noop(char * unused, char * unused2, user_data * user_data){
     return writeToOutputBuffer("+OK\r\n", user_data);
 }
 
-executionStatus dele(char * toDelete, char * unused, user_data * user_data){ //todo check valid number
+executionStatus dele(char * toDelete, char * unused, user_data * user_data){
     int toDeleteNumber = atoi(toDelete);
     char * msg;
     executionStatus toReturn;

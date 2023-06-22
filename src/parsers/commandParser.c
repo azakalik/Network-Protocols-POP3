@@ -144,7 +144,7 @@ static int discardUntilCRLF(full_command * full_command, char * const data){
     return i;
 }
 
-static int processNode(command_node * node, char * data){ //todo que pasa cuando data tiene mas de un comando
+static int processNode(command_node * node, char * data){
     if (data == NULL)
         return 0;
 

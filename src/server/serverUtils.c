@@ -191,7 +191,6 @@ void acceptConnection(user_data* connectedUsers,int servSock){
 	socklen_t clntAddrLen = sizeof(clntAddr);
 
 	// Wait for a client to connect
-    //TODO: Preguntar a coda non-blocking
 	int clntSock = accept(servSock, (struct sockaddr *) &clntAddr, &clntAddrLen);
 
 	if (clntSock < 0) {
@@ -213,7 +212,7 @@ void acceptConnection(user_data* connectedUsers,int servSock){
     if ( !allocatedClient ){
         log(ERROR,"%s", "Could not allocate client who requested to connect, users structure is full");
         close(clntSock);
-        exit(EXIT_FAILURE); //todo dont exit!
+        exit(EXIT_FAILURE);
     } else if (user.command_list == NULL){
         log(ERROR,"%s", "Could not allocate memory for a command list in a new connection");
         close(clntSock);
@@ -422,7 +421,6 @@ void handleUdpRequest(int udpSocket){
     }
 
     int messageLength = datagramData.commandFunction(&datagramData.headers, buffer);
-    //TODO manejar errores aca
     int sendBytes = sendto(udpSocket,buffer,messageLength,0,(struct sockaddr *)&clientAddress,clientAddressLength);
     if ( sendBytes < 0){
         log(ERROR,"%s","Error sending dgram");

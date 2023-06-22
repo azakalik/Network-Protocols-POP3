@@ -10,7 +10,7 @@
 
 #include "../stats/stats.h"
 
-#define NOT_ALLOCATED -1 //todo esto mismo esta declarado en main, buscar una solucion
+#define NOT_ALLOCATED -1
 
 void writeToClient(user_data * client){
     int toWrite = getBufferOccupiedSpace(&client->output_buff);

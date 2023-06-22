@@ -69,10 +69,6 @@ bool modifyUserPassword(char * username, char * newPassword) {
     return modified;
 }
 
-
-
-//TODO mirar usuario y clave
-
 // Function to insert a node at the beginning of the linked list if the user does not exist
 bool insertUserNode(char* name, char* password) {
     user_linked_list_singleton* list = getSingletonInstance();
