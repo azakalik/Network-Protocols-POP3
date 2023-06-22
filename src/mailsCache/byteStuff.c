@@ -25,7 +25,9 @@ static void rebaseBuffer(charactersProcessor * charactersProcessor);
 static int readFromBuffer(charactersProcessor * charactersProcessor);
 
 charactersProcessor * initCharactersProcessor(){
-    return calloc(1, sizeof(charactersProcessor));
+    charactersProcessor * toReturn = calloc(1, sizeof(charactersProcessor));
+    toReturn->state = READFIRSTNEWLINE;
+    return toReturn;
 }
 
 void freeCharactersProcessor(charactersProcessor * charactersProcessor){
