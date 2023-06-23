@@ -41,7 +41,7 @@ static int setupUDPServerSocket(char * service,int ipVersion){
 
     // Initialize hints
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = ipVersion;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
+    hints.ai_family = ipVersion;     
     hints.ai_socktype = SOCK_DGRAM;  // UDP socket
     hints.ai_flags = AI_PASSIVE;     // Fill in my IP for me
 	hints.ai_protocol = IPPROTO_UDP;
