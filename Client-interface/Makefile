@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-TARGET = myprogram
+TARGET = client
 
 SRCS = main.c
 
