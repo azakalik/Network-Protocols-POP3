@@ -36,12 +36,10 @@ int main(int argc, char ** argv){
 		return 1;
 
 
-    int udpServSockIpv4 = setupUDPServerSocketIpv4("6000");
-    if ( udpServSockIpv4 < 0)
-        return 1;
+   
 
-    int udpServSockIpv6 = setupUDPServerSocketIpv6("6001");
-    if (udpServSockIpv6 < 0){
+    int udpServSock = setupUDPServerSocketIpv6("6000");
+    if (udpServSock < 0){
         return 1;
     }
 
@@ -63,9 +61,8 @@ int main(int argc, char ** argv){
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
         FD_SET(servSock,&readFds);
-        FD_SET(udpServSockIpv4,&readFds);
-        FD_SET(udpServSockIpv6,&readFds);
-        maxSock = udpServSockIpv6;
+        FD_SET(udpServSock,&readFds);
+        maxSock = udpServSock;
         //we add all sockets to sets
         addClientsSocketsToSet(&readFds,&writeFds,&maxSock,usersData);
         //we wait for select activity
@@ -80,12 +77,8 @@ int main(int argc, char ** argv){
             acceptConnection(usersData,servSock);
         }
 
-        if ( FD_ISSET(udpServSockIpv4,&readFds)){
-            handleUdpRequest(udpServSockIpv4);
-        }
-
-        if ( FD_ISSET(udpServSockIpv6,&readFds) ){
-            handleUdpRequest(udpServSockIpv6);
+        if ( FD_ISSET(udpServSock,&readFds) ){
+            handleUdpRequest(udpServSock);
         }
 
         //read and write to clients

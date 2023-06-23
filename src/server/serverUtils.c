@@ -82,11 +82,8 @@ static int setupUDPServerSocket(char * service,int ipVersion){
         return 1;
     }
 
-    // Print IP version of the bound socket
-    if (p->ai_family == AF_INET) {
-        printf("IPv4 UDP socket bound\n");
-    } else if (p->ai_family == AF_INET6) {
-        printf("IPv6 UDP socket bound\n");
+    if (p->ai_family == AF_INET6) {
+        printf("IPv6|IPv4 UDP socket bound\n");
     } else {
         printf("Unknown socket bound\n");
     }
@@ -99,10 +96,6 @@ static int setupUDPServerSocket(char * service,int ipVersion){
 }
 
 
-
-int setupUDPServerSocketIpv4(char * service){
-    return setupUDPServerSocket(service,AF_INET);
-}
 
 int setupUDPServerSocketIpv6(char * service){
     return setupUDPServerSocket(service,AF_INET6);
