@@ -27,6 +27,13 @@ Para correr el servidor, en la raíz del proyecto correr el comando:
 Reemplazar ```<puerto_pasivo>``` por el puerto en el que el servidor tiene que atender nuevas conexiones.
 A considerar: el ```<usuario>``` debe coincidir con un nombre de directorio en la carpeta mails. De lo contrario, el usuario podrá loggearse al servidor pero no tendrá mails.
 
+Si se desea correr el servidor con más de un usuario se puede agregar con otro -u. Por ejemplo:
+
+```
+./bin/project <puerto_pasivo> -u <usuario1>:<contraseña1> -u <usuario2>:<contraseña2> ... -u <usuarioN>:<contraseñaN>
+```
+
+
 Para correr el cliente de monitoreo, en la carpeta `Client-Interface` correr el siguiente comando:
 ```./client <IPv4|IPv6> <Server IP> <Server Port/Service>```
 
