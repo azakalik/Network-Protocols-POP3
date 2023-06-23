@@ -31,10 +31,10 @@ $(OBJDIR) $(BINDIR):
 
 clean:
 	rm -rf $(OBJDIR) $(BINDIR) 
-	$(MAKE) -C client-interface clean
+	$(MAKE) -C Client-interface clean
 
 all: $(TARGET) 
-	$(MAKE) -C client-interface all
+	$(MAKE) -C Client-interface all
 
 .DEFAULT_GOAL := all
 
