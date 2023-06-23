@@ -5,19 +5,17 @@
 #define BUFFERSIZE 2048
 
 typedef enum {
-    NORMAL,
-    READFIRSTCARRIAGE,
-    READFIRSTNEWLINE,
+    NEWLINE,
     DOT,
-    READSECONDCARRIAGE,
-    INMEDIATERETURNCARRIAGE,
-    INMEDIATERETURNNEWLINE,
+    NORMAL,
+    CR,
 } read_states;
 
 typedef struct charactersProcessor {
     char buffer[BUFFERSIZE];
     int idx;
     int len;
+    bool eofReached;
     read_states state;
 } charactersProcessor;
 
@@ -25,9 +23,7 @@ static void rebaseBuffer(charactersProcessor * charactersProcessor);
 static int readFromBuffer(charactersProcessor * charactersProcessor);
 
 charactersProcessor * initCharactersProcessor(){
-    charactersProcessor * toReturn = calloc(1, sizeof(charactersProcessor));
-    toReturn->state = READFIRSTNEWLINE;
-    return toReturn;
+    return calloc(1, sizeof(charactersProcessor));
 }
 
 void freeCharactersProcessor(charactersProcessor * charactersProcessor){
@@ -37,8 +33,8 @@ void freeCharactersProcessor(charactersProcessor * charactersProcessor){
 int getNProcessedCharacters(charactersProcessor * charactersProcessor, char * buffer, int n){
     if(charactersProcessor == NULL)
         return 0;
-    int available = availableCharacters(charactersProcessor);
-    int toCopy = available < n ? available : n;
+    // int available = availableCharacters(charactersProcessor);
+    int toCopy = n;
 
     int copied;
     for (copied = 0; copied < toCopy; copied++)
@@ -51,14 +47,15 @@ int getNProcessedCharacters(charactersProcessor * charactersProcessor, char * bu
     }
     
 
-    // strncpy(buffer, charactersProcessor->buffer, toCopy);
     rebaseBuffer(charactersProcessor);
     return copied;
 }
 
-int addCharactersToProcess(charactersProcessor * charactersProcessor, char * buffer, int n){
+int addCharactersToProcess(charactersProcessor * charactersProcessor, char * buffer, int n, bool eofReached){
     if(charactersProcessor == NULL)
         return 0;
+
+    charactersProcessor->eofReached = eofReached;
 
     int freeSpace = availableSpace(charactersProcessor);
     int toAdd = freeSpace < n ? freeSpace : n;
@@ -82,7 +79,8 @@ int availableSpace(charactersProcessor * charactersProcessor){
 void resetCharactersProcessor(charactersProcessor * charactersProcessor){
     charactersProcessor->idx = 0;
     charactersProcessor->len = 0;
-    charactersProcessor->state = NORMAL;
+    charactersProcessor->state = NEWLINE;
+    charactersProcessor->eofReached = false;
 }
 
 static void rebaseBuffer(charactersProcessor * charactersProcessor){
@@ -101,60 +99,26 @@ static int readFromBuffer(charactersProcessor * charactersProcessor){
     //read but with state machine, EOF was not reached
     
     if ( charactersProcessor->idx >= charactersProcessor->len ){
+        if (charactersProcessor->eofReached && charactersProcessor->state == DOT){
+            charactersProcessor->state = NORMAL;
+            return '.';
+        }
         return 0;
     }
 
     int c = charactersProcessor->buffer[charactersProcessor->idx];
 
-
-    if ( charactersProcessor->state == INMEDIATERETURNCARRIAGE){
-        charactersProcessor->state = INMEDIATERETURNNEWLINE;
-        return '\r';
-    }
-
-    if ( charactersProcessor->state == INMEDIATERETURNNEWLINE){
+    if ( charactersProcessor->state == DOT && c == '\r'){
         charactersProcessor->state = NORMAL;
-        return '\n';
-    }
-
-    if ( charactersProcessor->state == READSECONDCARRIAGE ){ 
-        //tengo garantizado que en c tengo el que le sigue al '\r'
-        if ( c == '\n'){
-            charactersProcessor->state = INMEDIATERETURNCARRIAGE;
-            charactersProcessor->idx++;
-            return '.';
-        }
-    }
-
-    if ( charactersProcessor->state == DOT){ 
-        if ( charactersProcessor->idx + 1 < charactersProcessor->len){
-            //es seguro preguntar por los 2 caracteres
-            if ( c == '\r' && charactersProcessor->buffer[charactersProcessor->idx + 1] == '\n'){
-                charactersProcessor->state = NORMAL;
-                return '.';
-            }
-        } else if ( c == '\r'){
-            charactersProcessor->state = READSECONDCARRIAGE;
-            rebaseBuffer(charactersProcessor);
-            charactersProcessor->idx++;
-            return 0;
-        }
+        return '.';
     }
 
     if ( c == '\r'){
-        charactersProcessor->state = READFIRSTCARRIAGE;
+        charactersProcessor->state = CR;
     } else if ( c == '\n'){
-        if ( charactersProcessor->state == READFIRSTCARRIAGE){
-            charactersProcessor->state = READFIRSTNEWLINE;
-        }else{
-            charactersProcessor->state = NORMAL;
-        }
-    } else if ( c == '.'){
-        if (charactersProcessor->state == READFIRSTNEWLINE){
-            charactersProcessor->state = DOT;
-        }else {
-            charactersProcessor->state = NORMAL;
-        }
+        charactersProcessor->state = NEWLINE;
+    } else if ( c == '.' && charactersProcessor->state == NEWLINE){
+        charactersProcessor->state = DOT;
     } else {
         charactersProcessor->state = NORMAL;
     }

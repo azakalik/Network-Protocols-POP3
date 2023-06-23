@@ -103,7 +103,7 @@ executionStatus getNCharsFromMail(mailCache * mailCache, int * characters, char 
     int availableChars = availableCharacters(mailCache->retrState.charactersProcessor);
     if(*characters > availableChars){
         int charactersRead = fread(buffer, 1, *characters - availableChars, mailCache->retrState.currentMail);
-        addCharactersToProcess(mailCache->retrState.charactersProcessor, buffer, charactersRead);
+        addCharactersToProcess(mailCache->retrState.charactersProcessor, buffer, charactersRead, feof(mailCache->retrState.currentMail) != 0);
     }
     
     *characters = getNProcessedCharacters(mailCache->retrState.charactersProcessor, buffer, *characters);
