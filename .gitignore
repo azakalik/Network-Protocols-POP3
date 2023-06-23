@@ -71,3 +71,7 @@ dkms.conf
 .vscode
 *.json
 compile-flags.txt
+
+#Mac ICloud stuff
+.DS_Store
+*.DS_Store
