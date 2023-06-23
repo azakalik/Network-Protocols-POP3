@@ -30,9 +30,11 @@ $(OBJDIR) $(BINDIR):
 .PHONY: clean
 
 clean:
-	rm -rf $(OBJDIR) $(BINDIR)
+	rm -rf $(OBJDIR) $(BINDIR) 
+	$(MAKE) -C client-interface clean
 
-all: $(TARGET)
+all: $(TARGET) 
+	$(MAKE) -C client-interface all
 
 .DEFAULT_GOAL := all
 
