@@ -94,9 +94,14 @@ executionStatus checkValidUsername(char * username, char * empty, user_data * da
 executionStatus checkValidPassword(char * password, char * empty, user_data * data){
     char * message;
     if ( validPassword(data->login_info.username,password) ){
-        message = "+OK Welcome\r\n";
-        data->mailCache = initCache(data->login_info.username);
-        data->session_state = TRANSACTION;
+        if (userIsConnected(data->login_info.username)){
+            message = "-ERR This user is already connected\r\n";
+        } else {
+            message = "+OK Welcome\r\n";
+            toggleUserConnected(data->login_info.username, true);
+            data->mailCache = initCache(data->login_info.username);
+            data->session_state = TRANSACTION;
+        }
     } else {
         message = "-ERR Authentication failed\r\n";
     }

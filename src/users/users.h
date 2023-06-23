@@ -13,6 +13,7 @@
 typedef struct {
     char name[USERDATASIZE];
     char password[USERDATASIZE];
+    bool userConnected;
 } registered_users_data;
 
 typedef struct user_node {
@@ -27,10 +28,11 @@ typedef struct {
 
 
 void initializeUserSingleton(int initialUsers, char ** userData);
-bool validUsername(char * username);
+void toggleUserConnected(char * username, bool isConnected);
 bool validPassword(char * username, char * password);
 void removeAllUserNodes();
 bool insertUserNode(char * name, char * password);
+bool userIsConnected(char * username);
 void deleteUserNode(char* name);
 bool modifyUserPassword(char * username, char * newPassword);
 int listUsers(char * dgram);
