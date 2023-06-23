@@ -21,6 +21,10 @@
 #define MAX_DGRAM_SIZE 8096
 #define INPSIZE 128
 
+bool badAuthorization = false;
+bool malformedAuthorization = false;
+bool invalidVersion = false;
+
 void printIntroduction();
 int setupUDPClientSocket(const char* serverIP, int serverPort, void *structAddr, socklen_t *length);
 int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * structAddr, socklen_t * length);
@@ -31,10 +35,20 @@ int checkValidRequestId(char * requestId, char * dgramRecieved);
 int main(int argc, char ** argv){
 
     //Receive the port to program
-    if(argc != 4){
+    if(argc < 4 || argc > 5 ){
         // log(ERROR,"Error: Invalid number of arguments\n");
-        fprintf(stderr,"Usage: <IPv4|IPv6> <Server IP> <Server Port/Service>\n");
+        fprintf(stderr,"Usage: <IPv4|IPv6> <Server IP> <Server Port/Service> [optional: -BA|-MA|-WV]\n");
         exit(1);
+    }
+
+    if ( argc == 5){
+        if ( strcmp(argv[4],"-BA") == 0){
+            badAuthorization = true;
+        } else if ( strcmp(argv[4],"-MA") == 0){
+            malformedAuthorization = true;
+        } else if ( strcmp(argv[4],"-WV") == 0){
+            invalidVersion = true;
+        }
     }
 
     if ( strcmp(argv[1],"IPv6") != 0 && strcmp(argv[1],"IPv4") != 0){
@@ -93,45 +107,25 @@ int main(int argc, char ** argv){
             message = "Sending historic connections request: ...\n";
         }
         else if (strncmp(input, "AU", 2) == 0) {
-            if(strlen(input) < 4){
-                printf("Usage: AU <USER>.\n");
-            } else{
-                message = "Sending Adding user request....\n";
-            }
-        }
-        else if (strncmp(input, "CA", 2) == 0) {
-            if(strlen(input) < 4){
-                printf("Usage: CA <KEY>.\n");
-            } else{
-                printf("Creating a new key...\n");
-            }
-        }
-        else if (strncmp(input, "DM", 2) == 0) {
-            if(strlen(input) < 4){
-                printf("Usage: DM <METHOD>.\n");
-            } else{
-                printf("Disabling a specific method...\n");
-            }
+            message = "Sending Adding user request....\n";
         }
         else if (strncmp(input, "MP", 2) == 0) {
-            if(strlen(input) < 6){
-                printf("Usage: MP <USER> <NEW PASSWORD>.\n");
-            } else{
-                message = "Sending modifying password request...\n";
-            }
+            
+            message = "Sending modifying password request...\n";
+
         }
         else if (strncmp(input, "DU", 2) == 0) {
-            if(strlen(input) < 4){
-                printf("Usage: DU <USER>.\n");
-            } else{
-                message = "Sending Delete User request.....\n";
-            }
+            
+            message = "Sending Delete User request.....\n";
         }
         else if (strncmp(input, "LU", 2) == 0) {
-            printf("Listing users...\n");
+            message = "Listing users....\n";
         }
         else if (strncmp(input, "HELP", 4) == 0) {
             printIntroduction();
+            getchar(); // Consume the newline character from the buffer
+            printf("> ");
+            continue;
         }
         else if (strncmp(input, "QUIT",4) == 0) {
             printf("Quitting...\n");
@@ -186,7 +180,6 @@ int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * struct
         exit(EXIT_FAILURE);
     }
 
-    // Set up the server address structure
     struct sockaddr_in6 serverAddress;
     memset(&serverAddress, 0, sizeof(serverAddress));
     serverAddress.sin6_family = AF_INET6;
@@ -199,23 +192,34 @@ int setupUDPClientSocketIPv6(const char* serverIP, int serverPort, void * struct
     memcpy(structAddr,&serverAddress,len);
     *length = len;
 
-    // No need to bind() for the client, as the OS will assign a random local port
 
     return sockfd;
 }
 
+
+
 void sendDatagram(int sockFd,char * command,struct sockaddr * serverAddr,size_t serverAddrLength){
-    // Message to be sent
+
+    char * versionProtocol = "V1.0";
+    if ( invalidVersion ){
+        versionProtocol = "V2.0";
+    }
+    char * authorization = "C9h2iUZ4sWJY16fDl7Vg5RnH0vN8aQpX";
+    if ( badAuthorization ){
+        authorization = "C9h2iUZ4sWJY16fDl7Vg5RnH0vN8aQpI";
+    } else if ( malformedAuthorization ){
+        authorization = "C9h2iUZ4sWJY16fD";
+    }
+
     char requestId[REQ_ID_LEN + 1];
     generateRandomString(requestId,REQ_ID_LEN);
     char buffer[MAX_DGRAM_SIZE + 1];
-    sprintf(buffer,"MP3P V1.0\n%s\nC9h2iUZ4sWJY16fDl7Vg5RnH0vN8aQpX\n%s",requestId,command);
+    sprintf(buffer,"MP3P %s\n%s\n%s\n%s",versionProtocol,requestId,authorization,command);
     int message_len = strlen(buffer);
 
     int retry = 0;
     int sent = 0;
     while (retry < MAX_RETRY) {
-        // Send the message
         ssize_t bytes_sent = sendto(sockFd, buffer, message_len, 0,
                                     (struct sockaddr *)serverAddr, serverAddrLength);
 
@@ -224,8 +228,7 @@ void sendDatagram(int sockFd,char * command,struct sockaddr * serverAddr,size_t 
             exit(EXIT_FAILURE);
         }
 
-
-        // Set up the receive timeout
+        // we set the socket timeout
         struct timeval timeout;
         timeout.tv_sec = TIMEOUT_SECONDS;
         timeout.tv_usec = 0;
@@ -234,7 +237,6 @@ void sendDatagram(int sockFd,char * command,struct sockaddr * serverAddr,size_t 
             exit(EXIT_FAILURE);
         }
 
-        // Receive the response
         char response[MAX_DGRAM_SIZE + 1];
         ssize_t bytes_received = recv(sockFd, response, MAX_DGRAM_SIZE, 0);
         response[bytes_received] = 0;
@@ -246,7 +248,7 @@ void sendDatagram(int sockFd,char * command,struct sockaddr * serverAddr,size_t 
             printf("A datagram was recieved but the id does not match, attempt %d\n",retry + 1);
             retry++;
         } else {
-            printf("Response received: %s\n", response);
+            printf("Response received: %s\n\n", response);
             sent = 1;
             break;
         }
@@ -268,13 +270,13 @@ void generateRandomString(char *output, size_t length) {
         output[i] = characters[rand() % (sizeof(characters) - 1)];
     }
 
-    output[length] = '\0';  // Null-terminate the string
+    output[length] = '\0';  
 }
 
 int checkValidRequestId(char * requestId, char * dgramRecieved){
     char * responseRequestId = strchr(dgramRecieved,'\n');
 
-    responseRequestId++;//we skip the newline
+    responseRequestId++;
     for ( int i = 0; i < REQ_ID_LEN && responseRequestId[i] != '\n'; i++){
         if ( requestId[i] != responseRequestId[i] ){
             return false;
@@ -291,11 +293,10 @@ void printIntroduction(){
     printf("3.  CC                       : To see the current connections\n");
     printf("4.  HC                       : To see the history connections\n");
     printf("5.  AU <USER>                : To add a user\n");
-    printf("6.  CA <KEY>                 : To create a new key\n");
-    printf("7.  DM <METHOD>              : To disable a specific method\n");
-    printf("8.  MP <USER> <NEW PASSWORD> : To modify the password\n");
-    printf("9.  DU <USER>                : To delete a user\n");
-    printf("10. LU                       : To list users\n");
-    printf("11. HELP                     : To print options again\n");
-    printf("12. QUIT                     : To quit\n");
+    printf("6.  MP <USER> <NEW PASSWORD> : To modify the password\n");
+    printf("7.  DU <USER>                : To delete a user\n");
+    printf("8. LU                        : To list users\n");
+    printf("9. LC                        : To list MP3P capabilities\n");
+    printf("10. HELP                     : To print options again\n");
+    printf("11. QUIT                     : To quit\n");
 }

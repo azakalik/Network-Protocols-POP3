@@ -41,7 +41,7 @@ static int setupUDPServerSocket(char * service,int ipVersion){
 
     // Initialize hints
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = ipVersion;     // Use AF_INET6 to prefer IPv6 or AF_UNSPEC for dual-stack
+    hints.ai_family = ipVersion;     
     hints.ai_socktype = SOCK_DGRAM;  // UDP socket
     hints.ai_flags = AI_PASSIVE;     // Fill in my IP for me
 	hints.ai_protocol = IPPROTO_UDP;
@@ -82,11 +82,8 @@ static int setupUDPServerSocket(char * service,int ipVersion){
         return 1;
     }
 
-    // Print IP version of the bound socket
-    if (p->ai_family == AF_INET) {
-        printf("IPv4 UDP socket bound\n");
-    } else if (p->ai_family == AF_INET6) {
-        printf("IPv6 UDP socket bound\n");
+    if (p->ai_family == AF_INET6) {
+        printf("IPv6|IPv4 UDP socket bound\n");
     } else {
         printf("Unknown socket bound\n");
     }
@@ -99,10 +96,6 @@ static int setupUDPServerSocket(char * service,int ipVersion){
 }
 
 
-
-int setupUDPServerSocketIpv4(char * service){
-    return setupUDPServerSocket(service,AF_INET);
-}
 
 int setupUDPServerSocketIpv6(char * service){
     return setupUDPServerSocket(service,AF_INET6);
