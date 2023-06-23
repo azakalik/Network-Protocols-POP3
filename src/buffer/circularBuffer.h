@@ -1,7 +1,7 @@
 #ifndef CIRCULAR_BUFFER
 #define CIRCULAR_BUFFER
+#include "../server/serverOptions.h"
 
-#define BUFFERSIZE 2048
 typedef struct {
     char buffer[BUFFERSIZE];
     int count;

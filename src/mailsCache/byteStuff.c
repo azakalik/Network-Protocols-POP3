@@ -1,8 +1,7 @@
 #include "byteStuff.h"
 #include "string.h"
 #include <stdlib.h>
-
-#define BUFFERSIZE 2048
+#include "../server/serverOptions.h"
 
 typedef enum {
     NEWLINE,
