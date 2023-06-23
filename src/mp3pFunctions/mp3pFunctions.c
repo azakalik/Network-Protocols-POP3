@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "../users/users.h"
+#include "../logger/logger.h"
 #define MAXDATAGRAMLENGTH 8096
 #define VERSION "V1.0"
 #define AUTHKEY "C9h2iUZ4sWJY16fDl7Vg5RnH0vN8aQpX"
@@ -142,12 +143,14 @@ static int concurrentConnectionsStrategy(mp3p_args_data * args, char * dgramOutp
 
 static int deleteUserStrategy(mp3p_args_data * args, char * dgramOutput){
     deleteUserNode(args->username);
+    log(INFO,"Deleted user %s from user list",args->username);
     return okDatagramMessage(dgramOutput,args);
 }
 
 static int modifyUserPasswordStrategy(mp3p_args_data * args, char * dgramOutput){
     bool modified = modifyUserPassword(args->username,args->password);
     if ( modified ){
+        log(INFO,"user password %s has been modified to %s\n",args->username,args->password);
         return okDatagramMessage(dgramOutput,args);
     }
     return errorDatagramMessage(dgramOutput,args,RESOURCE_NOT_FOUND);
@@ -156,8 +159,10 @@ static int modifyUserPasswordStrategy(mp3p_args_data * args, char * dgramOutput)
 static int addUserStrategy(mp3p_args_data * args, char * dgramOutput){
     if ( !insertUserNode(args->username,args->password) ) {
         //el usuario ya existia
+
         return modifyUserPasswordStrategy(args,dgramOutput);
     }
+    log(INFO,"User with username %s and password %s has been added",args->username,args->password);
     return okDatagramMessage(dgramOutput,args);
 }
 
@@ -177,6 +182,7 @@ static int invalidCommandStrategy(mp3p_args_data * args, char * dgramOutput){
 }
 
 static int listCapabilitiesStrategy(mp3p_args_data * args ,char * dgramOutput){
+    
     int length = okDatagramMessage(dgramOutput,args);
     int bytesCopied = sprintf(dgramOutput + length,"MP3P V1.0\nBT\nBR\nCC\nHC\nDU\nAU\nMP\nLU\nLC\n");
     return length + bytesCopied;
