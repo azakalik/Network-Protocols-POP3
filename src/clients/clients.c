@@ -69,9 +69,6 @@ void readFromClient(user_data * client){
     //we add to statistics the amount of bytes read
     addRecievedBytesToStats(bytesRead);
 
-
-
-
     addData(client->command_list, auxiliaryBuffer);
     client->client_state = WRITING;
 }
