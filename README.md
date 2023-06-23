@@ -49,5 +49,5 @@ Opcionalmente, se puede agregar uno de los siguientes flags, para que se puedan 
 ### Materiales
 En la carpeta `docs` se encuentra el informe de este trabajo.
 
-En la carpeta `test` se encuentran los archivos que se utilizaron para probar el servidor. `client.py` simula un cliente que hace infinitos requests. `runMultipleClients.sh` es un script para generar `X`conexiones simultáneas. Recibe como argumento la cantidad de procesos `client.py` que se desean crear.
+En la carpeta `test` se encuentran los archivos que se utilizaron para probar el servidor.
 
