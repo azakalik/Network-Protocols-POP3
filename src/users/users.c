@@ -42,18 +42,33 @@ bool isEmpty() {
     return list->head == NULL;
 }
 
-bool userExists(char* name) {
+static user_node * getUserNode(char * username) {
     user_linked_list_singleton * list = getSingletonInstance();
     user_node* currentNode = list->head;
 
     while (currentNode != NULL) {
-        if (strcmp(currentNode->data.name, name) == 0) {
-            return true;
+        if (strcmp(currentNode->data.name, username) == 0) {
+            return currentNode;
         }
         currentNode = currentNode->next;
     }
 
-    return false;
+    return NULL;
+}
+
+bool userExists(char* name) {
+    return getUserNode(name) != NULL;
+}
+
+bool userIsConnected(char * username){
+    user_node * user = getUserNode(username);
+    return (user != NULL) && (user->data.userConnected);
+}
+
+void toggleUserConnected(char * username, bool isConnected){
+    user_node * user = getUserNode(username);
+    if(user!=NULL)
+        user->data.userConnected = isConnected;
 }
 
 
@@ -80,6 +95,7 @@ bool insertUserNode(char* name, char* password) {
     user_node* newNode = (user_node*)malloc(sizeof(user_node));
     strcpy(newNode->data.name, name);
     strcpy(newNode->data.password, password);
+    newNode->data.userConnected = false;
     newNode->next = list->head;
     list->head = newNode;
     list->size++;

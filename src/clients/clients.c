@@ -7,6 +7,7 @@
 #include <sys/socket.h> // send()
 #include <errno.h>
 #include "../mailsCache/mailsCache.h"
+#include "../users/users.h"
 
 #include "../stats/stats.h"
 
@@ -91,6 +92,7 @@ void closeClient(user_data * client){
         free(client->currentCommand);
     }
 
+    toggleUserConnected(client->login_info.username, false);
     destroyList(client->command_list);
     freeCache(client->mailCache);
     close(client->socket);
