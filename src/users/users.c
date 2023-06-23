@@ -2,11 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../logger/logger.h"
-
-
-bool isEmpty();
-
-
+static bool isEmpty();
 
 user_linked_list_singleton * createSingletonUserLinkedListInstance(){
     static user_linked_list_singleton instance;
@@ -37,7 +33,7 @@ bool validPassword(char * username, char * password){
 
 
 // Function to check if the linked list is empty
-bool isEmpty() {
+static bool isEmpty() {
     user_linked_list_singleton * list = getSingletonInstance();
     return list->head == NULL;
 }
