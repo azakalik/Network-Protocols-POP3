@@ -138,10 +138,7 @@ static int concurrentConnectionsStrategy(mp3p_args_data * args, char * dgramOutp
     return outputStatisticsMessage(dgramOutput,args,concurrentConnections);
 }
 
-static int addUserStrategy(mp3p_args_data * args, char * dgramOutput){
-    insertUserNode(args->username,args->password);
-    return okDatagramMessage(dgramOutput,args);
-}
+
 
 static int deleteUserStrategy(mp3p_args_data * args, char * dgramOutput){
     deleteUserNode(args->username);
@@ -154,6 +151,14 @@ static int modifyUserPasswordStrategy(mp3p_args_data * args, char * dgramOutput)
         return okDatagramMessage(dgramOutput,args);
     }
     return errorDatagramMessage(dgramOutput,args,RESOURCE_NOT_FOUND);
+}
+
+static int addUserStrategy(mp3p_args_data * args, char * dgramOutput){
+    if ( !insertUserNode(args->username,args->password) ) {
+        //el usuario ya existia
+        return modifyUserPasswordStrategy(args,dgramOutput);
+    }
+    return okDatagramMessage(dgramOutput,args);
 }
 
 static int listUsersStrategy(mp3p_args_data * args, char * dgramOutput){
