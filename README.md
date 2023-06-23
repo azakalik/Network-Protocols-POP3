@@ -22,7 +22,7 @@ Esto genera el binario `project` en la carpeta `bin` y `client` en la carpeta `C
 
 ### Ejecución
 Para correr el servidor, en la raíz del proyecto correr el comando:
-```./bin/project <puerto_pasivo> -u <usuario>:<contraseña>```
+```./bin/project <puerto_pasivo> -u <usuario1>:<contraseña1> .... -u <usuarioN>:<contraseñaN>```
 
 Reemplazar ```<puerto_pasivo>``` por el puerto en el que el servidor tiene que atender nuevas conexiones.
 A considerar: el ```<usuario>``` debe coincidir con un nombre de directorio en la carpeta mails. De lo contrario, el usuario podrá loggearse al servidor pero no tendrá mails.
